@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="seatGrade 검증" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-03-17T07:01:32" hostname="11479ui-MacBookPro.local" time="0.002">
+  <properties/>
+  <testcase name="앞줄_중앙(0,8)은_VIP_등급이다" classname="com.ticketing.domain.seat.SeatSettingStrategyTest$MusicalStandardTest$SeatGradeTest" time="0.001"/>
+  <testcase name="VIP_좌석_수가_전체의_20~30% 범위이다" classname="com.ticketing.domain.seat.SeatSettingStrategyTest$MusicalStandardTest$SeatGradeTest" time="0.0"/>
+  <testcase name="앞줄_사이드(0,0)는_R_등급이다 (vipColRatio 범위 밖)" classname="com.ticketing.domain.seat.SeatSettingStrategyTest$MusicalStandardTest$SeatGradeTest" time="0.0"/>
+  <testcase name="뒷줄_중앙(9,8)은_R_등급이다 (vipRowRatio 범위 밖)" classname="com.ticketing.domain.seat.SeatSettingStrategyTest$MusicalStandardTest$SeatGradeTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
