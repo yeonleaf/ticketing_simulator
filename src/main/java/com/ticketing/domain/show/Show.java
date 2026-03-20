@@ -31,21 +31,17 @@ public class Show {
     @Column(nullable = false)
     private int audienceCount;
 
-    @Column(nullable = false)
-    private Duration seatHoldingTime;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private SeatSettingStrategy seatSettingStrategy;
 
     @Builder
     public Show(String name, int maxRow, int maxCol, int audienceCount,
-                Duration seatHoldingTime, SeatSettingStrategy seatSettingStrategy) {
+                SeatSettingStrategy seatSettingStrategy) {
         this.name = name;
         this.maxRow = maxRow;
         this.maxCol = maxCol;
         this.audienceCount = audienceCount;
-        this.seatHoldingTime = seatHoldingTime;
         this.seatSettingStrategy = seatSettingStrategy;
     }
 }

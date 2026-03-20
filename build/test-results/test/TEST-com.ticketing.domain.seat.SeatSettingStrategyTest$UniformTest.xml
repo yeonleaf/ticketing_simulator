@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="UNIFORM 전략" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-03-17T07:01:32" hostname="11479ui-MacBookPro.local" time="0.002">
+<testsuite name="UNIFORM 전략" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-03-18T02:55:30" hostname="11479ui-MacBookPro.local" time="0.001">
   <properties/>
   <testcase name="모든_좌석의_seatGrade가_R이다" classname="com.ticketing.domain.seat.SeatSettingStrategyTest$UniformTest" time="0.001"/>
-  <testcase name="모든_좌석의_hotScore가_50이다" classname="com.ticketing.domain.seat.SeatSettingStrategyTest$UniformTest" time="0.001"/>
+  <testcase name="모든_좌석의_hotScore가_50이다" classname="com.ticketing.domain.seat.SeatSettingStrategyTest$UniformTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

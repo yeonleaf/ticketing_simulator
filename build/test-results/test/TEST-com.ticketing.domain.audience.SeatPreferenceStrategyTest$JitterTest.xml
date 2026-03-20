@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Jitter 동작 검증" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-03-18T02:55:30" hostname="11479ui-MacBookPro.local" time="0.001">
+  <properties/>
+  <testcase name="같은_시드는_항상_동일한_결과를_반환한다" classname="com.ticketing.domain.audience.SeatPreferenceStrategyTest$JitterTest" time="0.0"/>
+  <testcase name="다른_시드는_같은_풀_안에서_다른_결과를_만든다" classname="com.ticketing.domain.audience.SeatPreferenceStrategyTest$JitterTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

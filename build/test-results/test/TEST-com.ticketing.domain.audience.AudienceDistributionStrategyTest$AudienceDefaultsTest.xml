@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Audience 기본값 검증" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-03-18T02:55:30" hostname="11479ui-MacBookPro.local" time="0.002">
+  <properties/>
+  <testcase name="생성된_모든_Audience가_올바른_기본값을_가진다" classname="com.ticketing.domain.audience.AudienceDistributionStrategyTest$AudienceDefaultsTest" time="0.001"/>
+  <testcase name="seatCnt=1이_60~80명_seatCnt=2가_20~40명이다" classname="com.ticketing.domain.audience.AudienceDistributionStrategyTest$AudienceDefaultsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

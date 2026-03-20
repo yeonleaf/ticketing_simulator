@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="셔플 검증" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-03-18T02:55:30" hostname="11479ui-MacBookPro.local" time="0.029">
+  <properties/>
+  <testcase name="같은_시드로_두_번_실행하면_완전히_동일한_결과가_나온다" classname="com.ticketing.domain.audience.AudienceDistributionStrategyTest$ShuffleTest" time="0.024"/>
+  <testcase name="셔플로_인해_같은_전략이_연속으로_뭉치지_않는다" classname="com.ticketing.domain.audience.AudienceDistributionStrategyTest$ShuffleTest" time="0.002"/>
+  <testcase name="다른_시드는_전략별_인원수는_같지만_순서가_다르다" classname="com.ticketing.domain.audience.AudienceDistributionStrategyTest$ShuffleTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

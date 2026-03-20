@@ -1,16 +1,15 @@
 package com.ticketing.domain.simulation;
 
+import com.ticketing.domain.audience.AudienceDistributionStrategy;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.Instant;
 
 @Entity
 @Table(name = "simulations")
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Simulation {
 
@@ -27,6 +26,10 @@ public class Simulation {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    private AudienceDistributionStrategy audienceDistributionStrategy;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private SimStatus status;
 
     private Instant startedAt;
@@ -40,9 +43,11 @@ public class Simulation {
     private int duplicateHoldCount;
 
     @Builder
-    public Simulation(Long showId, LockStrategy lockStrategy) {
+    public Simulation(Long showId, LockStrategy lockStrategy,
+                      AudienceDistributionStrategy audienceDistributionStrategy) {
         this.showId = showId;
         this.lockStrategy = lockStrategy;
+        this.audienceDistributionStrategy = audienceDistributionStrategy;
         this.status = SimStatus.READY;
     }
 

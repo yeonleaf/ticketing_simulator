@@ -26,7 +26,6 @@ public class ShowController {
                 .maxRow(request.maxRow())
                 .maxCol(request.maxCol())
                 .audienceCount(request.audienceCount())
-                .seatHoldingTime(Duration.ofSeconds(request.seatHoldingTimeSeconds()))
                 .seatSettingStrategy(request.seatSettingStrategy())
                 .build();
         return ResponseEntity.ok(showService.createShow(show));

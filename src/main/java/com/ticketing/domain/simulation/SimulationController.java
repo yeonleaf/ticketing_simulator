@@ -1,5 +1,6 @@
 package com.ticketing.domain.simulation;
 
+import com.ticketing.domain.audience.AudienceDistributionStrategy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +19,8 @@ public class SimulationController {
     public ResponseEntity<Simulation> createSimulation(
             @PathVariable Long showId,
             @RequestBody CreateSimulationRequest request) {
-        return ResponseEntity.ok(simulationService.createSimulation(showId, request.lockStrategy()));
+        return ResponseEntity.ok(simulationService.createSimulation(
+                showId, request.lockStrategy(), request.audienceDistributionStrategy()));
     }
 
     /**
@@ -40,5 +42,7 @@ public class SimulationController {
         return ResponseEntity.ok(simulationService.getSimulation(id));
     }
 
-    public record CreateSimulationRequest(LockStrategy lockStrategy) {}
+    public record CreateSimulationRequest(
+            LockStrategy lockStrategy,
+            AudienceDistributionStrategy audienceDistributionStrategy) {}
 }

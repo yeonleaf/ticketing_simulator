@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="BALANCED — 균등 분포" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-03-18T02:55:30" hostname="11479ui-MacBookPro.local" time="0.0">
+  <properties/>
+  <testcase name="최다_전략과_최소_전략의_차이가_2_이하이다" classname="com.ticketing.domain.audience.AudienceDistributionStrategyTest$BalancedTest" time="0.0"/>
+  <testcase name="모든_전략에_최소_10명_이상_배분된다" classname="com.ticketing.domain.audience.AudienceDistributionStrategyTest$BalancedTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

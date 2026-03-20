@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="HotScoreFirst — 인기석 우선" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-03-18T02:55:30" hostname="11479ui-MacBookPro.local" time="0.001">
+  <properties/>
+  <testcase name="반환된_좌석의_평균_hotScore가_전체_평균보다_높다" classname="com.ticketing.domain.audience.SeatPreferenceStrategyTest$HotScoreFirstTest" time="0.0"/>
+  <testcase name="반환된_좌석이_모두_hotScore_상위_9개_풀_안에_포함된다" classname="com.ticketing.domain.audience.SeatPreferenceStrategyTest$HotScoreFirstTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

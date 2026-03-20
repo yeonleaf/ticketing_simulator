@@ -46,6 +46,9 @@ public class Audience {
     @Column(name = "seat_no")
     private List<Integer> acquiredSeatNos = new ArrayList<>();
 
+    @Version
+    private Long version;
+
     @Builder
     public Audience(Long simulationId, boolean isRealUser, int seatCnt,
                     Duration seatClickWaitJitter, SeatPreferenceStrategy strategy) {

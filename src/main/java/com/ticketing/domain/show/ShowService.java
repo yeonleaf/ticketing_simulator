@@ -21,8 +21,16 @@ public class ShowService {
      */
     @Transactional
     public Show createShow(Show show) {
-        // TODO: Show 저장 후 Seat 일괄 생성
-        throw new UnsupportedOperationException("Not implemented yet");
+        // Show 저장
+        show = showRepository.save(show);
+
+        // Seat 일괄 생성 및 저장
+        List<Seat> seats = generateSeats(show);
+        seats.forEach(seatRepository::save);
+
+        // Simulation 생성 및 저장
+
+        return show;
     }
 
     public Show getShow(Long showId) {
@@ -35,7 +43,6 @@ public class ShowService {
     }
 
     private List<Seat> generateSeats(Show show) {
-        // TODO: SeatSettingStrategy 기반으로 모든 좌석 생성
-        throw new UnsupportedOperationException("Not implemented yet");
+        return show.getSeatSettingStrategy().generateSeats(show.getId(), show.getMaxRow(), show.getMaxCol());
     }
 }

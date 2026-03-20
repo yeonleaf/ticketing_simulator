@@ -19,7 +19,7 @@ public class PaymentService {
     @Transactional
     public Payment processPayment(Long audienceId, List<Integer> seatNoList) {
         // TODO: 결제 처리 로직
-        throw new UnsupportedOperationException("Not implemented yet");
+        return paymentRepository.save(new Payment(audienceId, seatNoList));
     }
 
     public Payment getPayment(Long paymentId) {

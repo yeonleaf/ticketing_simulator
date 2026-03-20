@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="hotScore 검증" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-03-17T07:01:32" hostname="11479ui-MacBookPro.local" time="0.003">
+<testsuite name="hotScore 검증" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-03-18T02:55:30" hostname="11479ui-MacBookPro.local" time="0.002">
   <properties/>
-  <testcase name="hotScore_순서: 앞줄중앙 &gt; 앞줄사이드 &gt; 뒷줄사이드, 앞줄중앙 &gt; 뒷줄중앙 &gt; 뒷줄사이드" classname="com.ticketing.domain.seat.SeatSettingStrategyTest$MusicalStandardTest$HotScoreTest" time="0.001"/>
-  <testcase name="뒷줄_중앙(9,8)은_중간_정도의_hotScore를_가진다 (40~50)" classname="com.ticketing.domain.seat.SeatSettingStrategyTest$MusicalStandardTest$HotScoreTest" time="0.0"/>
+  <testcase name="hotScore_순서: 앞줄중앙 &gt; 앞줄사이드 &gt; 뒷줄사이드, 앞줄중앙 &gt; 뒷줄중앙 &gt; 뒷줄사이드" classname="com.ticketing.domain.seat.SeatSettingStrategyTest$MusicalStandardTest$HotScoreTest" time="0.0"/>
+  <testcase name="뒷줄_중앙(9,8)은_중간_정도의_hotScore를_가진다 (40~50)" classname="com.ticketing.domain.seat.SeatSettingStrategyTest$MusicalStandardTest$HotScoreTest" time="0.001"/>
   <testcase name="앞줄_중앙(0,8)이_가장_높은_hotScore를_가진다 (95~100)" classname="com.ticketing.domain.seat.SeatSettingStrategyTest$MusicalStandardTest$HotScoreTest" time="0.0"/>
   <testcase name="앞줄_사이드(0,0)는_중간_정도의_hotScore를_가진다 (50~60)" classname="com.ticketing.domain.seat.SeatSettingStrategyTest$MusicalStandardTest$HotScoreTest" time="0.0"/>
   <testcase name="뒷줄_사이드(9,0)가_가장_낮은_hotScore를_가진다 (0~5)" classname="com.ticketing.domain.seat.SeatSettingStrategyTest$MusicalStandardTest$HotScoreTest" time="0.0"/>

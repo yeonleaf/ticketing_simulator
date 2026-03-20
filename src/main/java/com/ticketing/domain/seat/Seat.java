@@ -1,16 +1,14 @@
 package com.ticketing.domain.seat;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.Instant;
 
 @Entity
 @Table(name = "seats")
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Seat {
 
@@ -39,7 +37,8 @@ public class Seat {
 
     private Long holderId;
 
-    private Instant holdExpireAt;
+    @Version
+    private Long version;
 
     @Builder
     public Seat(int no, Long showId, int row, int col,
@@ -53,16 +52,14 @@ public class Seat {
         this.hotScore = hotScore;
     }
 
-    public void hold(Long audienceId, Instant expireAt) {
+    public void hold(Long audienceId) {
         this.seatStatus = SeatStatus.HELD;
         this.holderId = audienceId;
-        this.holdExpireAt = expireAt;
     }
 
     public void release() {
         this.seatStatus = SeatStatus.AVAILABLE;
         this.holderId = null;
-        this.holdExpireAt = null;
     }
 
     public boolean isAvailable() {

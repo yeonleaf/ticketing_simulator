@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="엣지 케이스" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-03-18T02:55:30" hostname="11479ui-MacBookPro.local" time="0.006">
+  <properties/>
+  <testcase name="totalCount_1이면_CONCERT_RUSH에서_HotScoreFirst에_1명_배분된다" classname="com.ticketing.domain.audience.AudienceDistributionStrategyTest$EdgeCaseTest" time="0.0"/>
+  <testcase name="totalCount_3이면_합이_3이고_상위_전략에_집중_배분된다" classname="com.ticketing.domain.audience.AudienceDistributionStrategyTest$EdgeCaseTest" time="0.0"/>
+  <testcase name="totalCount_1000이면_합이_1000이고_비율_오차가_2퍼센트_이내이다" classname="com.ticketing.domain.audience.AudienceDistributionStrategyTest$EdgeCaseTest" time="0.002"/>
+  <testcase name="totalCount_0이면_빈_리스트를_반환하고_예외가_없다" classname="com.ticketing.domain.audience.AudienceDistributionStrategyTest$EdgeCaseTest" time="0.0"/>
+  <testcase name="totalCount_9이면_합이_9이고_모든_인원이_0_이상이다" classname="com.ticketing.domain.audience.AudienceDistributionStrategyTest$EdgeCaseTest" time="0.0"/>
+  <testcase name="totalCount_1이면_MUSICAL에서_HotScoreFirst에_1명_배분된다" classname="com.ticketing.domain.audience.AudienceDistributionStrategyTest$EdgeCaseTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
