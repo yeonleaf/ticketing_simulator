@@ -61,14 +61,14 @@ public enum SeatSettingStrategy {
      * showId, maxRow, maxCol 기반으로 전체 좌석 목록 생성.
      * 좌석 번호(no)는 1부터 maxRow*maxCol까지 행 우선(row-major) 순으로 부여.
      */
-    public List<Seat> generateSeats(Long showId, int maxRow, int maxCol) {
+    public List<Seat> generateSeats(Long simulationId, int maxRow, int maxCol) {
         List<Seat> seats = new ArrayList<>(maxRow * maxCol);
         int seatNo = 1;
         for (int r = 0; r < maxRow; r++) {
             for (int c = 0; c < maxCol; c++) {
                 seats.add(Seat.builder()
                         .no(seatNo++)
-                        .showId(showId)
+                        .simulationId(simulationId)
                         .row(r)
                         .col(c)
                         .seatStatus(SeatStatus.AVAILABLE)

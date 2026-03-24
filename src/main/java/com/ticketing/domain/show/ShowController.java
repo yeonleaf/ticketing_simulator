@@ -20,7 +20,7 @@ public class ShowController {
      * Show 생성 + Seat 일괄 생성 (strategy 기반으로 grade, hotScore 자동 계산)
      */
     @PostMapping
-    public ResponseEntity<Show> createShow(@RequestBody CreateShowRequest request) {
+    public ResponseEntity<ShowResponse> createShow(@RequestBody CreateShowRequest request) {
         Show show = Show.builder()
                 .name(request.name())
                 .maxRow(request.maxRow())

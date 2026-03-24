@@ -16,12 +16,12 @@ public class Seat {
     private int no;
 
     @Column(nullable = false)
-    private Long showId;
+    private Long simulationId;
 
-    @Column(nullable = false)
+    @Column(name = "seat_row", nullable = false)
     private int row;
 
-    @Column(nullable = false)
+    @Column(name = "seat_col", nullable = false)
     private int col;
 
     @Enumerated(EnumType.STRING)
@@ -41,10 +41,10 @@ public class Seat {
     private Long version;
 
     @Builder
-    public Seat(int no, Long showId, int row, int col,
+    public Seat(int no, Long simulationId, int row, int col,
                 SeatStatus seatStatus, SeatGrade seatGrade, int hotScore) {
         this.no = no;
-        this.showId = showId;
+        this.simulationId = simulationId;
         this.row = row;
         this.col = col;
         this.seatStatus = seatStatus;

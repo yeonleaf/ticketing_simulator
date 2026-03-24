@@ -42,6 +42,12 @@ public class Simulation {
 
     private int duplicateHoldCount;
 
+    private String failReason;
+
+    private int fullySatisfiedCount;
+    private int partiallySatisfiedCount;
+    private int unsatisfiedCount;
+
     @Builder
     public Simulation(Long showId, LockStrategy lockStrategy,
                       AudienceDistributionStrategy audienceDistributionStrategy) {
@@ -56,11 +62,20 @@ public class Simulation {
         this.startedAt = Instant.now();
     }
 
-    public void finish(double totalTps, long avgResponseMs, int duplicateHoldCount) {
+    public void finish(double totalTps, long avgResponseMs, int duplicateHoldCount, int fullySatisfiedCount, int partiallySatisfiedCount, int unsatisfiedCount) {
         this.status = SimStatus.DONE;
         this.finishedAt = Instant.now();
         this.totalTps = totalTps;
         this.avgResponseMs = avgResponseMs;
         this.duplicateHoldCount = duplicateHoldCount;
+        this.fullySatisfiedCount = fullySatisfiedCount;
+        this.partiallySatisfiedCount = partiallySatisfiedCount;
+        this.unsatisfiedCount = unsatisfiedCount;
+    }
+
+    public void fail(String failReason) {
+        this.status = SimStatus.FAIL;
+        this.finishedAt = Instant.now();
+        this.failReason = failReason;
     }
 }

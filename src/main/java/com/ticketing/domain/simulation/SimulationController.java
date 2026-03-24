@@ -1,15 +1,32 @@
 package com.ticketing.domain.simulation;
 
 import com.ticketing.domain.audience.AudienceDistributionStrategy;
+import com.ticketing.domain.seat.Seat;
+import com.ticketing.domain.seat.SeatRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
 public class SimulationController {
 
+    private final SeatRepository seatRepository;
     private final SimulationService simulationService;
+
+    @GetMapping("/api/simulations")
+    public ResponseEntity<List<Simulation>> getAllSimulations() {
+        return ResponseEntity.ok(simulationService.getAllSimulations());
+    }
+
+    @GetMapping("/api/simulations/{id}")
+    public ResponseEntity<SimulationResponse> getSimulation(@PathVariable Long id) {
+        Simulation simulation = simulationService.getSimulation(id);
+        List<Seat> seats = seatRepository.findAllBySimulationId(id);
+        return ResponseEntity.ok(new SimulationResponse(simulation, seats));
+    }
 
     /**
      * POST /api/shows/{showId}/simulations

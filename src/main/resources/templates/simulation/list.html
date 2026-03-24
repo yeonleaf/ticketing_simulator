@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head><title>시뮬레이션 목록</title></head>
+<body>
+<div layout:fragment="content">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">시뮬레이션 목록</h4>
+        <a href="/shows" class="btn btn-outline-primary">공연 목록에서 생성</a>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Show ID</th>
+                        <th>락 전략</th>
+                        <th>관객 분포 전략</th>
+                        <th>상태</th>
+                        <th>시작 시각</th>
+                        <th>종료 시각</th>
+                        <th>액션</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:if="${#lists.isEmpty(simulations)}">
+                        <td colspan="8" class="text-center text-muted py-4">등록된 시뮬레이션이 없습니다.</td>
+                    </tr>
+                    <tr th:each="sim : ${simulations}">
+                        <td th:text="${sim.id}"></td>
+                        <td>
+                            <a th:href="|/shows/${sim.showId}|" th:text="${sim.showId}"
+                               class="text-decoration-none"></a>
+                        </td>
+                        <td>
+                            <span th:text="${sim.lockStrategy}"
+                                  th:classappend="${sim.lockStrategy.name() == 'PESSIMISTIC' ? 'bg-primary' :
+                                                   sim.lockStrategy.name() == 'OPTIMISTIC'  ? 'bg-success' :
+                                                                                               'bg-danger'}"
+                                  class="badge"></span>
+                        </td>
+                        <td th:text="${sim.audienceDistributionStrategy}"></td>
+                        <td>
+                            <span th:text="${sim.status}"
+                                  th:classappend="${sim.status.name() == 'READY'   ? 'bg-secondary' :
+                                                   sim.status.name() == 'RUNNING' ? 'bg-warning text-dark' :
+                                                                                     'bg-success'}"
+                                  class="badge"></span>
+                        </td>
+                        <td th:text="${sim.startedAt != null ? sim.startedAt : '-'}"></td>
+                        <td th:text="${sim.finishedAt != null ? sim.finishedAt : '-'}"></td>
+                        <td>
+                            <button th:disabled="${sim.status.name() != 'READY'}"
+                                    th:onclick="|location.href='/simulations/${sim.id}/run'|"
+                                    class="btn btn-sm btn-warning">
+                                실행
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="MUSICAL_HEAVY_FRONT — 비율 정확성" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-03-18T02:55:30" hostname="11479ui-MacBookPro.local" time="0.0">
-  <properties/>
-  <testcase name="100명_배분_시_각_전략별_인원이_가중치와_정확히_일치한다" classname="com.ticketing.domain.audience.AudienceDistributionStrategyTest$MusicalHeavyFrontTest" time="0.0"/>
-  <testcase name="100명_배분_시_전체_합이_정확히_100이다" classname="com.ticketing.domain.audience.AudienceDistributionStrategyTest$MusicalHeavyFrontTest" time="0.0"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

@@ -3,5 +3,6 @@ package com.ticketing.domain.simulation;
 public enum SimStatus {
     READY,
     RUNNING,
-    DONE
+    DONE,
+    FAIL
 }

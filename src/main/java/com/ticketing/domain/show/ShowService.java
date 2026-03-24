@@ -20,17 +20,11 @@ public class ShowService {
      * Show 생성 + Seat 일괄 생성 (strategy 기반 grade, hotScore 자동 계산)
      */
     @Transactional
-    public Show createShow(Show show) {
+    public ShowResponse createShow(Show show) {
         // Show 저장
         show = showRepository.save(show);
 
-        // Seat 일괄 생성 및 저장
-        List<Seat> seats = generateSeats(show);
-        seats.forEach(seatRepository::save);
-
-        // Simulation 생성 및 저장
-
-        return show;
+        return new ShowResponse(show);
     }
 
     public Show getShow(Long showId) {

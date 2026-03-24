@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="CenterCenter — 정중앙 우선" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-03-18T02:55:30" hostname="11479ui-MacBookPro.local" time="0.002">
-  <properties/>
-  <testcase name="반환된_좌석이_중간_행_근처이며_FrontCenter와_다른_결과이다" classname="com.ticketing.domain.audience.SeatPreferenceStrategyTest$CenterCenterTest" time="0.001"/>
-  <testcase name="반환된_좌석의_맨해튼_거리가_5_이하이다" classname="com.ticketing.domain.audience.SeatPreferenceStrategyTest$CenterCenterTest" time="0.001"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

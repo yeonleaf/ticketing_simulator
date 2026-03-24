@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head><title th:text="${show.name}">공연 상세</title></head>
+<body>
+<div layout:fragment="content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="/shows" class="text-decoration-none text-muted">&larr; 공연 목록</a>
+            <h4 class="mt-1 mb-0" th:text="${show.name}"></h4>
+        </div>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#simModal">
+            + 시뮬레이션 생성
+        </button>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="text-muted small">총 좌석 수</div>
+                    <div class="fs-4 fw-bold" th:text="${show.maxRow * show.maxCol}"></div>
+                    <div class="text-muted small" th:text="|${show.maxRow}행 × ${show.maxCol}열|"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="text-muted small">관객 수</div>
+                    <div class="fs-4 fw-bold" th:text="${show.audienceCount}"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="text-muted small">좌석 전략</div>
+                    <div class="fs-6 fw-bold mt-1">
+                        <span class="badge bg-secondary fs-6" th:text="${show.seatSettingStrategy}"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="text-muted small">공연 ID</div>
+                    <div class="fs-4 fw-bold" th:text="${show.id}"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Simulation Creation Modal -->
+    <div class="modal fade" id="simModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">시뮬레이션 생성</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">락 전략</label>
+                        <select id="lockStrategy" class="form-select">
+                            <option value="PESSIMISTIC">PESSIMISTIC – 비관적 락 (SELECT FOR UPDATE)</option>
+                            <option value="OPTIMISTIC">OPTIMISTIC – 낙관적 락 (@Version)</option>
+                            <option value="REDIS_REDISSON">REDIS_REDISSON – Redis 분산 락</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">관객 분포 전략</label>
+                        <select id="audienceDistributionStrategy" class="form-select">
+                            <option value="MUSICAL_HEAVY_FRONT">MUSICAL_HEAVY_FRONT – 앞줄 집중 (뮤지컬형)</option>
+                            <option value="CONCERT_RUSH">CONCERT_RUSH – 최고 인기 좌석 러시 (콘서트형)</option>
+                            <option value="BALANCED">BALANCED – 균형 분포</option>
+                            <option value="UNIFORM">UNIFORM – 균등 분포</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                    <button type="button" class="btn btn-primary" id="createSimBtn" onclick="createSimulation()">확인</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script th:inline="javascript">
+    const showId = [[${show.id}]];
+
+    async function createSimulation() {
+        const btn = document.getElementById('createSimBtn');
+        btn.disabled = true;
+        btn.textContent = '생성 중...';
+        try {
+            const res = await fetch(`/api/shows/${showId}/simulations`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    lockStrategy: document.getElementById('lockStrategy').value,
+                    audienceDistributionStrategy: document.getElementById('audienceDistributionStrategy').value
+                })
+            });
+            if (!res.ok) throw new Error(await res.text());
+            location.href = '/simulations';
+        } catch (err) {
+            alert('시뮬레이션 생성 실패: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = '확인';
+        }
+    }
+</script>
+</div>
+</body>
+</html>

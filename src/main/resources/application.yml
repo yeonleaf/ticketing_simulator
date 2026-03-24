@@ -9,11 +9,11 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: create-drop
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
         dialect: org.hibernate.dialect.MySQL8Dialect
   data:
     redis:
@@ -29,4 +29,4 @@ server:
 logging:
   level:
     com.ticketing: DEBUG
-    org.hibernate.SQL: DEBUG
+    org.hibernate.SQL: INFO

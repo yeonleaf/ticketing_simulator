@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface SeatRepository extends JpaRepository<Seat, Integer> {
-    List<Seat> findAllByShowId(Long showId);
+    List<Seat> findAllBySimulationId(Long simulationId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM Seat s WHERE s.no = :no")

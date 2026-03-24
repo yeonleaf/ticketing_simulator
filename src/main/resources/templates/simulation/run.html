@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title th:text="|시뮬레이션 #${simulation.id} 실행|">실행 화면</title>
+    <style>
+        .seat-cell {
+            width: 28px;
+            height: 28px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            background-color: #fff;
+            cursor: default;
+            flex-shrink: 0;
+        }
+        .seat-cell.held {
+            background-color: #198754;
+            border-color: #198754;
+        }
+        .seat-cell.vip {
+            box-shadow: 0 0 0 2px #ffc107;
+        }
+        #seatGrid {
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="/simulations" class="text-decoration-none text-muted">&larr; 시뮬레이션 목록</a>
+        <h4 class="mb-0" th:text="|시뮬레이션 #${simulation.id}|"></h4>
+        <span th:text="${simulation.lockStrategy}"
+              th:classappend="${simulation.lockStrategy.name() == 'PESSIMISTIC' ? 'bg-primary' :
+                               simulation.lockStrategy.name() == 'OPTIMISTIC'  ? 'bg-success' :
+                                                                                   'bg-danger'}"
+              class="badge fs-6"></span>
+    </div>
+
+    <!-- Metric Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">상태</div>
+                    <div id="cardStatus" class="fs-5 fw-bold"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Total TPS</div>
+                    <div id="cardTps" class="fs-3 fw-bold">-</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">평균 응답시간 (ms)</div>
+                    <div id="cardAvgMs" class="fs-3 fw-bold">-</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">중복 선점 횟수</div>
+                    <div id="cardDuplicate" class="fs-3 fw-bold">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Satisfaction Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card text-center h-100 border-success">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">완전 만족 (Fully Satisfied)</div>
+                    <div id="cardFullySatisfied" class="fs-3 fw-bold text-success">-</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center h-100 border-warning">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">부분 만족 (Partially Satisfied)</div>
+                    <div id="cardPartiallySatisfied" class="fs-3 fw-bold text-warning">-</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center h-100 border-danger">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">미충족 (Unsatisfied)</div>
+                    <div id="cardUnsatisfied" class="fs-3 fw-bold text-danger">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seat Grid -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>좌석 현황</span>
+            <div class="d-flex gap-3 small">
+                <span><span style="display:inline-block;width:14px;height:14px;background:#fff;border:1px solid #ccc;border-radius:2px;vertical-align:middle"></span> 가능</span>
+                <span><span style="display:inline-block;width:14px;height:14px;background:#198754;border-radius:2px;vertical-align:middle"></span> 선점</span>
+                <span><span style="display:inline-block;width:14px;height:14px;background:#fff;border:2px solid #ffc107;border-radius:2px;vertical-align:middle"></span> VIP</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="seatGrid" class="d-flex flex-column gap-1"></div>
+        </div>
+    </div>
+
+<script th:inline="javascript">
+    const simId = [[${simulation.id}]];
+    const initialStatus = [[${simulation.status.name()}]];
+
+    let pollInterval = null;
+
+    function statusBadge(status) {
+        const map = { READY: 'secondary', RUNNING: 'warning', DONE: 'success' };
+        const cls = map[status] || 'secondary';
+        const textClass = status === 'RUNNING' ? ' text-dark' : '';
+        return `<span class="badge bg-${cls}${textClass}">${status}</span>`;
+    }
+
+    function updateCards(sim) {
+        document.getElementById('cardStatus').innerHTML = statusBadge(sim.status);
+        const running = sim.status === 'RUNNING';
+        document.getElementById('cardTps').textContent = running ? '-' : (sim.totalTps != null ? sim.totalTps.toFixed(2) : '0.00');
+        document.getElementById('cardAvgMs').textContent = running ? '-' : (sim.avgResponseMs ?? 0);
+        document.getElementById('cardDuplicate').textContent = running ? '-' : (sim.duplicateHoldCount ?? 0);
+        document.getElementById('cardFullySatisfied').textContent = running ? '-' : (sim.fullySatisfiedCount ?? 0);
+        document.getElementById('cardPartiallySatisfied').textContent = running ? '-' : (sim.partiallySatisfiedCount ?? 0);
+        document.getElementById('cardUnsatisfied').textContent = running ? '-' : (sim.unsatisfiedCount ?? 0);
+    }
+
+    function renderSeats(seats) {
+        const byRow = {};
+        for (const seat of seats) {
+            if (!byRow[seat.row]) byRow[seat.row] = [];
+            byRow[seat.row].push(seat);
+        }
+        const grid = document.getElementById('seatGrid');
+        grid.innerHTML = '';
+        for (const rowKey of Object.keys(byRow).sort((a, b) => Number(a) - Number(b))) {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'd-flex gap-1';
+            for (const seat of byRow[rowKey].sort((a, b) => a.col - b.col)) {
+                const el = document.createElement('div');
+                el.className = 'seat-cell';
+                if (seat.seatStatus === 'HELD') el.classList.add('held');
+                if (seat.seatGrade === 'VIP') el.classList.add('vip');
+                el.title = `No.${seat.no} | 인기도: ${seat.hotScore}`;
+                el.setAttribute('data-bs-toggle', 'tooltip');
+                rowDiv.appendChild(el);
+            }
+            grid.appendChild(rowDiv);
+        }
+        // Bootstrap tooltips
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+            new bootstrap.Tooltip(el, { placement: 'top' });
+        });
+    }
+
+    async function fetchData() {
+        try {
+            const simRes = await fetch(`/api/simulations/${simId}`);
+            if (!simRes.ok) return;
+            const sim = await simRes.json();
+            updateCards(sim);
+            renderSeats(sim.seatResponses ?? []);
+            if (sim.status === 'DONE' && pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        } catch (e) {
+            console.error('폴링 오류', e);
+        }
+    }
+
+    // READY 상태면 start API 호출 (fire-and-forget, 응답 기다리지 않음)
+    if (initialStatus === 'READY') {
+        fetch(`/api/simulations/${simId}/start`, { method: 'POST' })
+            .catch(err => console.error('시뮬레이션 시작 실패:', err));
+    }
+
+    // 초기 데이터 즉시 로드
+    fetchData();
+
+    // DONE이 아니면 폴링 시작 (READY→RUNNING→DONE 전환 감지)
+    if (initialStatus !== 'DONE') {
+        pollInterval = setInterval(fetchData, 1000);
+    }
+</script>
+</div>
+</body>
+</html>

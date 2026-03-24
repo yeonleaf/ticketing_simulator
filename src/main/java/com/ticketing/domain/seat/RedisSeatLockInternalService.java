@@ -6,6 +6,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class RedisSeatLockInternalService {
@@ -22,7 +25,7 @@ public class RedisSeatLockInternalService {
         Seat seat = seatRepository.findByNo(seatNo)
                 .orElse(null);
         if (seat == null) return SeatHoldResult.FAIL;
-        if (!seat.isAvailable()) return SeatHoldResult.DUPLICATE;
+        if (!seat.isAvailable()) return SeatHoldResult.ALREADY_HELD;
 
         seat.hold(audienceId);
         seatRepository.save(seat);
@@ -31,5 +34,11 @@ public class RedisSeatLockInternalService {
         audienceRepository.save(audience);
 
         return SeatHoldResult.SUCCESS;
+    }
+
+    public List<SeatResponse> getAllSeatsBySimulationId(Long simulationId) {
+        List<SeatResponse> seatResponses = new ArrayList<>();
+        seatRepository.findAllBySimulationId(simulationId).forEach(e -> seatResponses.add(new SeatResponse(e)));
+        return seatResponses;
     }
 }

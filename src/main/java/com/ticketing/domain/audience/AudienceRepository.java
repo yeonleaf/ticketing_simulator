@@ -10,6 +10,11 @@ import java.util.List;
 import java.util.Optional;
 
 public interface AudienceRepository extends JpaRepository<Audience, Long> {
+
+    @Query("SELECT a FROM Audience a " +
+            "LEFT JOIN FETCH a.preferredSeatNos " +
+            "LEFT JOIN FETCH a.acquiredSeatNos " +
+            "WHERE a.simulationId = :simulationId")
     List<Audience> findAllBySimulationId(Long simulationId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

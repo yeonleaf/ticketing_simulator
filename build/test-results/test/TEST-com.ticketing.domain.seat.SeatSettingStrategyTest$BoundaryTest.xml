@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="경계값 테스트" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-03-18T02:55:30" hostname="11479ui-MacBookPro.local" time="0.002">
-  <properties/>
-  <testcase name="1행_1열_최소크기에서_divide_by_zero_없이_hotScore를_반환한다" classname="com.ticketing.domain.seat.SeatSettingStrategyTest$BoundaryTest" time="0.001"/>
-  <testcase name="10행_1열_단일열에서_centerScore_divide_by_zero_없이_동작한다 (center=0.5 처리)" classname="com.ticketing.domain.seat.SeatSettingStrategyTest$BoundaryTest" time="0.0"/>
-  <testcase name="1행_16열_단일행에서_distanceScore_divide_by_zero_없이_동작한다 (maxRow-1=0 처리)" classname="com.ticketing.domain.seat.SeatSettingStrategyTest$BoundaryTest" time="0.0"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

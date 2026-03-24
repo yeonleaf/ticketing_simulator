@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title layout:title-pattern="$CONTENT_TITLE - 티켓팅 시뮬레이터">티켓팅 시뮬레이터</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <style>
+        body { background-color: #f8f9fa; }
+        .navbar-brand { font-weight: bold; letter-spacing: 0.5px; }
+        tr[onclick] { cursor: pointer; }
+        tr[onclick]:hover td { background-color: #e9ecef; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-dark bg-dark mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="/shows">🎭 티켓팅 시뮬레이터</a>
+        <div class="d-flex gap-3">
+            <a class="nav-link text-white" href="/shows">공연 목록</a>
+            <a class="nav-link text-white" href="/simulations">시뮬레이션</a>
+        </div>
+    </div>
+</nav>
+<div class="container pb-5" layout:fragment="content">
+    <!-- page content goes here -->
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

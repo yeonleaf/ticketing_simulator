@@ -12,20 +12,26 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SeatController {
 
-    private SeatLockService seatService;
     private final PessimisticSeatLockService pessimisticSeatLockService;
     private final OptimisticSeatLockService optimisticSeatLockService;
     private final RedisSeatLockService redisSeatLockService;
     private final SimulationService simulationService;
 
-//    /**
-//     * GET /api/shows/{showId}/seats
-//     * 해당 공연의 전체 좌석 목록 (상태, 등급, hotScore 포함)
-//     */
-//    @GetMapping("/api/shows/{showId}/seats")
-//    public ResponseEntity<List<Seat>> getSeatsByShow(@PathVariable Long showId) {
-//        return ResponseEntity.ok(seatService.(showId));
-//    }
+    /**
+     * GET /api/shows/{showId}/seats
+     * 해당 공연의 전체 좌석 목록 (상태, 등급, hotScore 포함)
+     */
+    @GetMapping("/api/shows/{showId}/simulations/{simulationId}/seats")
+    public ResponseEntity<List<SeatResponse>> getSeatsByShow(@PathVariable Long showId,
+                                                             @PathVariable Long simulationId) {
+        Simulation simulation = simulationService.getSimulation(simulationId);
+        SeatLockService seatService = switch (simulation.getLockStrategy()) {
+            case PESSIMISTIC -> pessimisticSeatLockService;
+            case OPTIMISTIC -> optimisticSeatLockService;
+            case REDIS_REDISSON -> redisSeatLockService;
+        };
+        return ResponseEntity.ok(seatService.getAllSeatsBySimulationId(simulationId));
+    }
 
     /**
      * POST /api/seats/{seatNo}/hold
@@ -34,7 +40,7 @@ public class SeatController {
     @PostMapping("/api/seats/{seatNo}/hold")
     public ResponseEntity<SeatHoldResult> holdSeat(@PathVariable int seatNo, @RequestBody HoldRequest request) {
         Simulation simulation = simulationService.getSimulation(request.simulationId());
-        seatService = switch (simulation.getLockStrategy()) {
+        SeatLockService seatService = switch (simulation.getLockStrategy()) {
             case PESSIMISTIC -> pessimisticSeatLockService;
             case OPTIMISTIC -> optimisticSeatLockService;
             case REDIS_REDISSON -> redisSeatLockService;

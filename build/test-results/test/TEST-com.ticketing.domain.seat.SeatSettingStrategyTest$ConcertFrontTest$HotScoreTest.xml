@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="hotScore 검증" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-03-18T02:55:30" hostname="11479ui-MacBookPro.local" time="0.0">
-  <properties/>
-  <testcase name="같은_행에서_col_변화에_따른_hotScore_차이가_20_이하이다 (거리 가중치 0.8 지배)" classname="com.ticketing.domain.seat.SeatSettingStrategyTest$ConcertFrontTest$HotScoreTest" time="0.0"/>
-  <testcase name="같은_열에서_row_변화에_따른_hotScore_차이가_60_이상이다" classname="com.ticketing.domain.seat.SeatSettingStrategyTest$ConcertFrontTest$HotScoreTest" time="0.0"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

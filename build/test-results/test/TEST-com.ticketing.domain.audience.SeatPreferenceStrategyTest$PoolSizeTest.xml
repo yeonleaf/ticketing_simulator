@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="풀 크기 검증" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-03-18T02:55:30" hostname="11479ui-MacBookPro.local" time="0.008">
-  <properties/>
-  <testcase name="AVAILABLE이_풀_크기보다_적을_때도_seatCnt만큼_반환한다" classname="com.ticketing.domain.audience.SeatPreferenceStrategyTest$PoolSizeTest" time="0.005"/>
-  <testcase name="FrontCenter_결과는_row_정렬_상위_15개_풀_안에_속한다" classname="com.ticketing.domain.audience.SeatPreferenceStrategyTest$PoolSizeTest" time="0.002"/>
-  <testcase name="HotScoreFirst_결과는_hotScore_상위_15개_풀_안에_속한다" classname="com.ticketing.domain.audience.SeatPreferenceStrategyTest$PoolSizeTest" time="0.001"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>
