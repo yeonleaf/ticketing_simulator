@@ -34,18 +34,18 @@ public class SeatController {
     }
 
     /**
-     * POST /api/seats/{seatNo}/hold
+     * POST /api/seats/{seatId}/hold
      * 좌석 선점 시도 (여기서 락 경합 발생)
      */
-    @PostMapping("/api/seats/{seatNo}/hold")
-    public ResponseEntity<SeatHoldResult> holdSeat(@PathVariable int seatNo, @RequestBody HoldRequest request) {
+    @PostMapping("/api/seats/{seatId}/hold")
+    public ResponseEntity<SeatHoldResult> holdSeat(@PathVariable Long seatId, @RequestBody HoldRequest request) {
         Simulation simulation = simulationService.getSimulation(request.simulationId());
         SeatLockService seatService = switch (simulation.getLockStrategy()) {
             case PESSIMISTIC -> pessimisticSeatLockService;
             case OPTIMISTIC -> optimisticSeatLockService;
             case REDIS_REDISSON -> redisSeatLockService;
         };
-        return ResponseEntity.ok(seatService.hold(seatNo, request.audienceId()));
+        return ResponseEntity.ok(seatService.hold(seatId, request.audienceId()));
     }
 
     public record HoldRequest(Long audienceId, Long simulationId) {}

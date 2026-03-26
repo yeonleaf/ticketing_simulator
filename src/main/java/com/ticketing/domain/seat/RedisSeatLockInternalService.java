@@ -4,6 +4,7 @@ import com.ticketing.domain.audience.Audience;
 import com.ticketing.domain.audience.AudienceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
@@ -16,13 +17,13 @@ public class RedisSeatLockInternalService {
     private final SeatRepository seatRepository;
     private final AudienceRepository audienceRepository;
 
-    @Transactional
-    public SeatHoldResult doHold(int seatNo, Long audienceId) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public SeatHoldResult doHold(Long seatId, Long audienceId) {
         Audience audience = audienceRepository.findById(audienceId)
                 .orElse(null);
         if (audience == null) return SeatHoldResult.FAIL;
 
-        Seat seat = seatRepository.findByNo(seatNo)
+        Seat seat = seatRepository.findById(seatId)
                 .orElse(null);
         if (seat == null) return SeatHoldResult.FAIL;
         if (!seat.isAvailable()) return SeatHoldResult.ALREADY_HELD;
@@ -30,7 +31,7 @@ public class RedisSeatLockInternalService {
         seat.hold(audienceId);
         seatRepository.save(seat);
 
-        audience.getAcquiredSeatNos().add(seatNo);
+        audience.addAcquiredSeat(seatId);
         audienceRepository.save(audience);
 
         return SeatHoldResult.SUCCESS;

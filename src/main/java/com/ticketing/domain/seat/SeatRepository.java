@@ -9,12 +9,10 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface SeatRepository extends JpaRepository<Seat, Integer> {
+public interface SeatRepository extends JpaRepository<Seat, Long> {
     List<Seat> findAllBySimulationId(Long simulationId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT s FROM Seat s WHERE s.no = :no")
-    Optional<Seat> findByNoForUpdate(@Param("no") int no);
-
-    Optional<Seat> findByNo(int no);
+    @Query("SELECT s FROM Seat s WHERE s.id = :id")
+    Optional<Seat> findByIdForUpdate(@Param("id") Long id);
 }

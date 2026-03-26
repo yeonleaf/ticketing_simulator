@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title th:text="|${show.name} - 락 전략 비교|">비교 차트</title>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a th:href="|/shows/${show.id}|" class="text-decoration-none text-muted">&larr; 공연 상세</a>
+            <h4 class="mt-1 mb-0" th:text="|${show.name} — 락 전략 비교|"></h4>
+        </div>
+    </div>
+
+    <div id="noData" class="alert alert-warning d-none">
+        완료된 시뮬레이션이 없습니다. 먼저 시뮬레이션을 실행해 주세요.
+    </div>
+
+    <div id="chartArea">
+        <!-- TPS -->
+        <div class="card mb-4">
+            <div class="card-header fw-semibold">Total TPS (처리량)</div>
+            <div class="card-body">
+                <canvas id="chartTps" height="100"></canvas>
+            </div>
+        </div>
+
+        <!-- Avg Response Time -->
+        <div class="card mb-4">
+            <div class="card-header fw-semibold">평균 응답시간 (ms)</div>
+            <div class="card-body">
+                <canvas id="chartAvgMs" height="100"></canvas>
+            </div>
+        </div>
+
+        <!-- Failure Rate -->
+        <div class="card mb-4">
+            <div class="card-header fw-semibold d-flex align-items-center gap-2">
+                미충족률 (%)
+                <span class="text-muted small fw-normal">— 좌석을 하나도 못 얻은 관객 비율</span>
+            </div>
+            <div class="card-body">
+                <canvas id="chartFailRate" height="100"></canvas>
+            </div>
+        </div>
+
+        <!-- Raw Table -->
+        <div class="card">
+            <div class="card-header fw-semibold">원본 수치</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>락 전략</th>
+                            <th>스레드 전략</th>
+                            <th>관객 분포</th>
+                            <th>TPS</th>
+                            <th>응답시간(ms)</th>
+                            <th>중복 선점</th>
+                            <th>완전 만족</th>
+                            <th>부분 만족</th>
+                            <th>미충족</th>
+                            <th>미충족률(%)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rawTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+<script th:inline="javascript">
+    const showId = [[${show.id}]];
+
+    const LOCK_COLORS = {
+        PESSIMISTIC:   { bg: 'rgba(13,110,253,0.7)',  border: 'rgb(13,110,253)' },
+        OPTIMISTIC:    { bg: 'rgba(25,135,84,0.7)',   border: 'rgb(25,135,84)' },
+        REDIS_REDISSON:{ bg: 'rgba(220,53,69,0.7)',   border: 'rgb(220,53,69)' },
+    };
+
+    function colorOf(lockStrategy) {
+        return LOCK_COLORS[lockStrategy] ?? { bg: 'rgba(108,117,125,0.7)', border: 'rgb(108,117,125)' };
+    }
+
+    function makeChart(canvasId, label, data, labels, colors, unit) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label,
+                    data,
+                    backgroundColor: colors.map(c => c.bg),
+                    borderColor:     colors.map(c => c.border),
+                    borderWidth: 1,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `${ctx.parsed.y.toFixed(2)} ${unit}`
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: v => `${v} ${unit}` }
+                    }
+                }
+            }
+        });
+    }
+
+    function lockBadge(lock) {
+        const cls = lock === 'PESSIMISTIC' ? 'bg-primary'
+                  : lock === 'OPTIMISTIC'  ? 'bg-success'
+                  :                          'bg-danger';
+        return `<span class="badge ${cls}">${lock}</span>`;
+    }
+
+    async function load() {
+        const res = await fetch(`/api/simulations/compare?showId=${showId}`);
+        const sims = await res.json();
+
+        if (sims.length === 0) {
+            document.getElementById('noData').classList.remove('d-none');
+            document.getElementById('chartArea').classList.add('d-none');
+            return;
+        }
+
+        const labels  = sims.map(s => `#${s.id} ${s.lockStrategy}`);
+        const colors  = sims.map(s => colorOf(s.lockStrategy));
+        const tpsData = sims.map(s => s.totalTps);
+        const msData  = sims.map(s => s.avgResponseMs);
+        const failData = sims.map(s => {
+            const total = s.fullySatisfiedCount + s.partiallySatisfiedCount + s.unsatisfiedCount;
+            return total > 0 ? (s.unsatisfiedCount / total * 100) : 0;
+        });
+
+        makeChart('chartTps',     'TPS',          tpsData,  labels, colors, 'req/s');
+        makeChart('chartAvgMs',   '평균 응답시간', msData,   labels, colors, 'ms');
+        makeChart('chartFailRate', '미충족률',     failData, labels, colors, '%');
+
+        const tbody = document.getElementById('rawTableBody');
+        sims.forEach((s, i) => {
+            const total = s.fullySatisfiedCount + s.partiallySatisfiedCount + s.unsatisfiedCount;
+            const failPct = total > 0 ? (s.unsatisfiedCount / total * 100).toFixed(1) : '0.0';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${s.id}</td>
+                <td>${lockBadge(s.lockStrategy)}</td>
+                <td>${s.threadStrategy ?? '-'}</td>
+                <td><span class="badge bg-secondary">${s.audienceDistributionStrategy}</span></td>
+                <td>${s.totalTps.toFixed(2)}</td>
+                <td>${s.avgResponseMs}</td>
+                <td>${s.duplicateHoldCount}</td>
+                <td class="text-success">${s.fullySatisfiedCount}</td>
+                <td class="text-warning">${s.partiallySatisfiedCount}</td>
+                <td class="text-danger">${s.unsatisfiedCount}</td>
+                <td class="text-danger fw-bold">${failPct}%</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Chart.js 로드 후 실행
+    const chartJs = document.createElement('script');
+    chartJs.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js';
+    chartJs.onload = load;
+    document.head.appendChild(chartJs);
+</script>
+</div>
+</body>
+</html>

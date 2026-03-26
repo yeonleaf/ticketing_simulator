@@ -3,8 +3,6 @@ package com.ticketing.domain.seat;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.Instant;
-
 @Entity
 @Table(name = "seats")
 @Getter
@@ -12,8 +10,8 @@ import java.time.Instant;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Seat {
 
-    @Id
-    private int no;
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(nullable = false)
     private Long simulationId;
@@ -41,9 +39,8 @@ public class Seat {
     private Long version;
 
     @Builder
-    public Seat(int no, Long simulationId, int row, int col,
+    public Seat(Long simulationId, int row, int col,
                 SeatStatus seatStatus, SeatGrade seatGrade, int hotScore) {
-        this.no = no;
         this.simulationId = simulationId;
         this.row = row;
         this.col = col;

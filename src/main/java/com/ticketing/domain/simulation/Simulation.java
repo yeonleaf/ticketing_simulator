@@ -26,6 +26,10 @@ public class Simulation {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    private ThreadStrategy threadStrategy;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private AudienceDistributionStrategy audienceDistributionStrategy;
 
     @Enumerated(EnumType.STRING)
@@ -42,6 +46,7 @@ public class Simulation {
 
     private int duplicateHoldCount;
 
+    @Column(columnDefinition = "TEXT")
     private String failReason;
 
     private int fullySatisfiedCount;
@@ -50,9 +55,11 @@ public class Simulation {
 
     @Builder
     public Simulation(Long showId, LockStrategy lockStrategy,
+                      ThreadStrategy threadStrategy,
                       AudienceDistributionStrategy audienceDistributionStrategy) {
         this.showId = showId;
         this.lockStrategy = lockStrategy;
+        this.threadStrategy = threadStrategy;
         this.audienceDistributionStrategy = audienceDistributionStrategy;
         this.status = SimStatus.READY;
     }

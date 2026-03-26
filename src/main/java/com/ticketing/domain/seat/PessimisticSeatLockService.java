@@ -1,24 +1,17 @@
 package com.ticketing.domain.seat;
 
-import com.esotericsoftware.kryo.util.Null;
 import com.ticketing.domain.audience.Audience;
 import com.ticketing.domain.audience.AudienceRepository;
-import com.ticketing.domain.show.Show;
-import com.ticketing.domain.show.ShowRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.CannotAcquireLockException;
-import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -27,9 +20,9 @@ public class PessimisticSeatLockService implements SeatLockService {
     private final SeatRepository seatRepository;
     private final AudienceRepository audienceRepository;
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Override
-    public SeatHoldResult hold(int seatNo, Long audienceId) {
+    public SeatHoldResult hold(Long seatId, Long audienceId) {
         // 1. audience 유효성 검사
         Audience audience = audienceRepository.findById(audienceId)
                 .orElse(null);
@@ -39,15 +32,13 @@ public class PessimisticSeatLockService implements SeatLockService {
 
         // 2. 좌석 락 획득
         Seat seat;
-
         try {
-            seat = seatRepository.findByNoForUpdate(seatNo)
+            seat = seatRepository.findByIdForUpdate(seatId)
                     .orElse(null);
-
         } catch (PessimisticLockingFailureException pe) {
             return SeatHoldResult.LOCK_TIMEOUT;
         } catch (Exception e) {
-            log.error("예상치 못한 에러 (seatNo={})", seatNo, e);
+            log.error("예상치 못한 에러 (seatId={})", seatId, e);
             return SeatHoldResult.FAIL;
         }
 
@@ -63,7 +54,7 @@ public class PessimisticSeatLockService implements SeatLockService {
         seatRepository.save(seat);
 
         // 4. audience 결과 업데이트
-        audience.getAcquiredSeatNos().add(seatNo);
+        audience.addAcquiredSeat(seatId);
         audienceRepository.save(audience);
 
         return SeatHoldResult.SUCCESS;

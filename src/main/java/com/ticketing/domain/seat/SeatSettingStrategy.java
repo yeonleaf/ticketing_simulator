@@ -63,11 +63,9 @@ public enum SeatSettingStrategy {
      */
     public List<Seat> generateSeats(Long simulationId, int maxRow, int maxCol) {
         List<Seat> seats = new ArrayList<>(maxRow * maxCol);
-        int seatNo = 1;
         for (int r = 0; r < maxRow; r++) {
             for (int c = 0; c < maxCol; c++) {
                 seats.add(Seat.builder()
-                        .no(seatNo++)
                         .simulationId(simulationId)
                         .row(r)
                         .col(c)

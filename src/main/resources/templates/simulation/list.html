@@ -52,12 +52,17 @@
                         </td>
                         <td th:text="${sim.startedAt != null ? sim.startedAt : '-'}"></td>
                         <td th:text="${sim.finishedAt != null ? sim.finishedAt : '-'}"></td>
-                        <td>
+                        <td class="d-flex gap-1">
                             <button th:disabled="${sim.status.name() != 'READY'}"
                                     th:onclick="|location.href='/simulations/${sim.id}/run'|"
                                     class="btn btn-sm btn-warning">
                                 실행
                             </button>
+                            <a th:if="${sim.status.name() == 'DONE' or sim.status.name() == 'FAIL'}"
+                               th:href="|/simulations/${sim.id}/run|"
+                               class="btn btn-sm btn-outline-secondary">
+                                결과 보기
+                            </a>
                         </td>
                     </tr>
                 </tbody>

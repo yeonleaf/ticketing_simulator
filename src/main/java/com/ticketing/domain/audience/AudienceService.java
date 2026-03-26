@@ -2,13 +2,14 @@ package com.ticketing.domain.audience;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Transactional
 public class AudienceService {
 
     private final AudienceRepository audienceRepository;
@@ -18,7 +19,8 @@ public class AudienceService {
                 .orElseThrow(() -> new IllegalArgumentException("Audience not found: " + audienceId));
     }
 
-    public List<Audience> getAudiencesBySimulation(Long simulationId) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public List<Audience> getAudiencesBySimulationId(Long simulationId) {
         return audienceRepository.findAllBySimulationId(simulationId);
     }
 

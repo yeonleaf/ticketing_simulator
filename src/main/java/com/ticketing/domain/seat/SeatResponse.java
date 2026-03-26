@@ -1,11 +1,10 @@
 package com.ticketing.domain.seat;
 
-import jakarta.persistence.*;
 import lombok.Getter;
 
 @Getter
 public class SeatResponse {
-    private final int no;
+    private final Long id;
     private final Long simulationId;
     private final int row;
     private final int col;
@@ -15,7 +14,7 @@ public class SeatResponse {
     private final Long holderId;
 
     public SeatResponse(Seat seat) {
-        this.no = seat.getNo();
+        this.id = seat.getId();
         this.simulationId = seat.getSimulationId();
         this.row = seat.getRow();
         this.col = seat.getCol();

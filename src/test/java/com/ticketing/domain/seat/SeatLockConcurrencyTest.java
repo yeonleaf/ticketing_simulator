@@ -33,10 +33,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("좌석 선점 락 전략 동시성 테스트")
 class SeatLockConcurrencyTest {
 
-    // 다른 데이터와 충돌하지 않는 전용 번호
-    private static final int  SEAT_NO       = 9001;
     private static final long SIMULATION_ID = 9001L;
     private static final int  THREAD_COUNT  = 10;
+
+    // setUp에서 DB 저장 후 할당되는 seat ID
+    private Long seatId;
 
     @Autowired private PessimisticSeatLockService pessimisticLockService;
     @Autowired private OptimisticSeatLockService  optimisticLockService;
@@ -54,14 +55,14 @@ class SeatLockConcurrencyTest {
         cleanUp();
 
         Seat seat = Seat.builder()
-                .no(SEAT_NO)
-                .showId(SIMULATION_ID)
+                .simulationId(SIMULATION_ID)
                 .row(0).col(0)
                 .seatStatus(SeatStatus.AVAILABLE)
                 .seatGrade(SeatGrade.VIP)
                 .hotScore(100)
                 .build();
         seatRepository.save(seat);
+        seatId = seat.getId();
 
         for (int i = 0; i < THREAD_COUNT; i++) {
             audienceRepository.save(Audience.builder()
@@ -81,16 +82,15 @@ class SeatLockConcurrencyTest {
 
     private void cleanUp() {
         audienceRepository.findAllBySimulationId(SIMULATION_ID)
-                .forEach(audienceRepository::delete);   // @ElementCollection 포함 cascade
-        seatRepository.findById(SEAT_NO)
-                .ifPresent(seatRepository::delete);
+                .forEach(audienceRepository::delete);
+        seatRepository.findAllBySimulationId(SIMULATION_ID)
+                .forEach(seatRepository::delete);
     }
 
     // ──────────────────────────────────────────────────────────────
     // 헬퍼
     // ──────────────────────────────────────────────────────────────
 
-    /** N개 스레드가 동시에 action을 실행하고 결과를 반환한다. */
     private List<SeatHoldResult> runConcurrently(
             List<Long> audienceIds,
             Function<Long, SeatHoldResult> action) throws InterruptedException {
@@ -116,7 +116,7 @@ class SeatLockConcurrencyTest {
             });
         }
 
-        startLatch.countDown();                          // 동시 시작
+        startLatch.countDown();
         doneLatch.await(30, TimeUnit.SECONDS);
         executor.shutdown();
 
@@ -128,11 +128,10 @@ class SeatLockConcurrencyTest {
                 .stream().map(Audience::getId).collect(Collectors.toList());
     }
 
-    /** @ElementCollection(audience_acquired_seats)에서 특정 좌석을 가진 audience 수 조회 */
-    private int countAudiencesWithAcquiredSeat(int seatNo) {
+    private int countAudiencesWithAcquiredSeat(Long sid) {
         Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM audience_acquired_seats WHERE seat_no = ?",
-                Integer.class, seatNo);
+                "SELECT COUNT(*) FROM audience_acquired_seats WHERE seat_id = ?",
+                Integer.class, sid);
         return count != null ? count : 0;
     }
 
@@ -148,32 +147,32 @@ class SeatLockConcurrencyTest {
         @DisplayName("단일 요청 → SUCCESS")
         void 단일_요청은_SUCCESS() {
             Long id = audienceIds().get(0);
-            assertThat(pessimisticLockService.hold(SEAT_NO, id))
+            assertThat(pessimisticLockService.hold(seatId, id))
                     .isEqualTo(SeatHoldResult.SUCCESS);
         }
 
         @Test
-        @DisplayName("이미 HELD 좌석 재시도 → DUPLICATE")
-        void 이미_선점된_좌석은_DUPLICATE() {
+        @DisplayName("이미 HELD 좌석 재시도 → ALREADY_HELD")
+        void 이미_선점된_좌석은_ALREADY_HELD() {
             List<Long> ids = audienceIds();
-            pessimisticLockService.hold(SEAT_NO, ids.get(0));
+            pessimisticLockService.hold(seatId, ids.get(0));
 
-            assertThat(pessimisticLockService.hold(SEAT_NO, ids.get(1)))
-                    .isEqualTo(SeatHoldResult.DUPLICATE);
+            assertThat(pessimisticLockService.hold(seatId, ids.get(1)))
+                    .isEqualTo(SeatHoldResult.ALREADY_HELD);
         }
 
         @Test
-        @DisplayName("존재하지 않는 audience → FAIL")
-        void 존재하지_않는_audience는_FAIL() {
-            assertThat(pessimisticLockService.hold(SEAT_NO, -1L))
-                    .isEqualTo(SeatHoldResult.FAIL);
+        @DisplayName("존재하지 않는 audience → AUDIENCE_NOT_FOUND")
+        void 존재하지_않는_audience는_AUDIENCE_NOT_FOUND() {
+            assertThat(pessimisticLockService.hold(seatId, -1L))
+                    .isEqualTo(SeatHoldResult.AUDIENCE_NOT_FOUND);
         }
 
         @Test
         @DisplayName("N개 동시 요청 → 정확히 1개만 SUCCESS")
         void 동시_요청_정확히_1개_SUCCESS() throws InterruptedException {
             List<SeatHoldResult> results =
-                    runConcurrently(audienceIds(), id -> pessimisticLockService.hold(SEAT_NO, id));
+                    runConcurrently(audienceIds(), id -> pessimisticLockService.hold(seatId, id));
 
             assertThat(results).hasSize(THREAD_COUNT);
             assertThat(results.stream().filter(r -> r == SeatHoldResult.SUCCESS).count())
@@ -181,27 +180,26 @@ class SeatLockConcurrencyTest {
         }
 
         @Test
-        @DisplayName("N개 동시 요청 → 나머지는 모두 DUPLICATE")
-        void 동시_요청_나머지는_DUPLICATE() throws InterruptedException {
+        @DisplayName("N개 동시 요청 → 나머지는 모두 ALREADY_HELD")
+        void 동시_요청_나머지는_ALREADY_HELD() throws InterruptedException {
             List<SeatHoldResult> results =
-                    runConcurrently(audienceIds(), id -> pessimisticLockService.hold(SEAT_NO, id));
+                    runConcurrently(audienceIds(), id -> pessimisticLockService.hold(seatId, id));
 
-            long notSuccess = results.stream().filter(r -> r != SeatHoldResult.SUCCESS).count();
-            long duplicate  = results.stream().filter(r -> r == SeatHoldResult.DUPLICATE).count();
+            long notSuccess  = results.stream().filter(r -> r != SeatHoldResult.SUCCESS).count();
+            long alreadyHeld = results.stream().filter(r -> r == SeatHoldResult.ALREADY_HELD).count();
 
-            // DB 락을 획득한 순서대로 순차 실행 → 이후 요청은 모두 seat=HELD 를 확인하고 DUPLICATE
-            assertThat(duplicate).isEqualTo(notSuccess);
+            assertThat(alreadyHeld).isEqualTo(notSuccess);
         }
 
         @Test
         @DisplayName("N개 동시 요청 후 DB 상태 검증 → seat HELD + acquiredSeat 1건")
         void 동시_요청_후_DB_상태_검증() throws InterruptedException {
-            runConcurrently(audienceIds(), id -> pessimisticLockService.hold(SEAT_NO, id));
+            runConcurrently(audienceIds(), id -> pessimisticLockService.hold(seatId, id));
 
-            Seat seat = seatRepository.findByNo(SEAT_NO).orElseThrow();
+            Seat seat = seatRepository.findById(seatId).orElseThrow();
             assertThat(seat.getSeatStatus()).isEqualTo(SeatStatus.HELD);
             assertThat(seat.getHolderId()).isNotNull();
-            assertThat(countAudiencesWithAcquiredSeat(SEAT_NO)).isEqualTo(1);
+            assertThat(countAudiencesWithAcquiredSeat(seatId)).isEqualTo(1);
         }
     }
 
@@ -217,33 +215,32 @@ class SeatLockConcurrencyTest {
         @DisplayName("단일 요청 → SUCCESS")
         void 단일_요청은_SUCCESS() {
             Long id = audienceIds().get(0);
-            assertThat(optimisticLockService.hold(SEAT_NO, id))
+            assertThat(optimisticLockService.hold(seatId, id))
                     .isEqualTo(SeatHoldResult.SUCCESS);
         }
 
         @Test
-        @DisplayName("이미 HELD 좌석 재시도 → FAIL (isAvailable=false 분기)")
-        void 이미_선점된_좌석은_FAIL() {
+        @DisplayName("이미 HELD 좌석 재시도 → ALREADY_HELD")
+        void 이미_선점된_좌석은_ALREADY_HELD() {
             List<Long> ids = audienceIds();
-            optimisticLockService.hold(SEAT_NO, ids.get(0));
+            optimisticLockService.hold(seatId, ids.get(0));
 
-            // OptimisticSeatLockService: seat.isAvailable()==false → FAIL (DUPLICATE 아님)
-            assertThat(optimisticLockService.hold(SEAT_NO, ids.get(1)))
-                    .isEqualTo(SeatHoldResult.FAIL);
+            assertThat(optimisticLockService.hold(seatId, ids.get(1)))
+                    .isEqualTo(SeatHoldResult.ALREADY_HELD);
         }
 
         @Test
-        @DisplayName("존재하지 않는 audience → FAIL")
-        void 존재하지_않는_audience는_FAIL() {
-            assertThat(optimisticLockService.hold(SEAT_NO, -1L))
-                    .isEqualTo(SeatHoldResult.FAIL);
+        @DisplayName("존재하지 않는 audience → AUDIENCE_NOT_FOUND")
+        void 존재하지_않는_audience는_AUDIENCE_NOT_FOUND() {
+            assertThat(optimisticLockService.hold(seatId, -1L))
+                    .isEqualTo(SeatHoldResult.AUDIENCE_NOT_FOUND);
         }
 
         @Test
         @DisplayName("N개 동시 요청 → 정확히 1개만 SUCCESS")
         void 동시_요청_정확히_1개_SUCCESS() throws InterruptedException {
             List<SeatHoldResult> results =
-                    runConcurrently(audienceIds(), id -> optimisticLockService.hold(SEAT_NO, id));
+                    runConcurrently(audienceIds(), id -> optimisticLockService.hold(seatId, id));
 
             assertThat(results).hasSize(THREAD_COUNT);
             assertThat(results.stream().filter(r -> r == SeatHoldResult.SUCCESS).count())
@@ -251,29 +248,25 @@ class SeatLockConcurrencyTest {
         }
 
         @Test
-        @DisplayName("N개 동시 요청 → 비성공 결과는 FAIL 또는 DUPLICATE만 존재")
-        void 동시_요청_비성공_결과는_FAIL_또는_DUPLICATE() throws InterruptedException {
+        @DisplayName("N개 동시 요청 → 비성공 결과는 ALREADY_HELD 또는 LOCK_CONFLICT만 존재")
+        void 동시_요청_비성공_결과는_ALREADY_HELD_또는_LOCK_CONFLICT() throws InterruptedException {
             List<SeatHoldResult> results =
-                    runConcurrently(audienceIds(), id -> optimisticLockService.hold(SEAT_NO, id));
+                    runConcurrently(audienceIds(), id -> optimisticLockService.hold(seatId, id));
 
-            // DB 속도에 따라:
-            //   빠른 경우: thread1 커밋 후 나머지가 seat=HELD 확인 → FAIL
-            //   느린 경우: 복수 스레드가 동시에 AVAILABLE 읽고 write 충돌 → DUPLICATE
-            // 어떤 경우든 SUCCESS 이외의 결과는 FAIL 또는 DUPLICATE여야 한다
             results.stream()
                     .filter(r -> r != SeatHoldResult.SUCCESS)
                     .forEach(r -> assertThat(r)
-                            .isIn(SeatHoldResult.FAIL, SeatHoldResult.DUPLICATE));
+                            .isIn(SeatHoldResult.ALREADY_HELD, SeatHoldResult.LOCK_CONFLICT));
         }
 
         @Test
         @DisplayName("N개 동시 요청 후 DB 상태 검증 → seat HELD + acquiredSeat 1건")
         void 동시_요청_후_DB_상태_검증() throws InterruptedException {
-            runConcurrently(audienceIds(), id -> optimisticLockService.hold(SEAT_NO, id));
+            runConcurrently(audienceIds(), id -> optimisticLockService.hold(seatId, id));
 
-            Seat seat = seatRepository.findByNo(SEAT_NO).orElseThrow();
+            Seat seat = seatRepository.findById(seatId).orElseThrow();
             assertThat(seat.getSeatStatus()).isEqualTo(SeatStatus.HELD);
-            assertThat(countAudiencesWithAcquiredSeat(SEAT_NO)).isEqualTo(1);
+            assertThat(countAudiencesWithAcquiredSeat(seatId)).isEqualTo(1);
         }
     }
 
@@ -289,24 +282,24 @@ class SeatLockConcurrencyTest {
         @DisplayName("단일 요청 → SUCCESS")
         void 단일_요청은_SUCCESS() {
             Long id = audienceIds().get(0);
-            assertThat(redisLockService.hold(SEAT_NO, id))
+            assertThat(redisLockService.hold(seatId, id))
                     .isEqualTo(SeatHoldResult.SUCCESS);
         }
 
         @Test
-        @DisplayName("이미 HELD 좌석 재시도 → DUPLICATE")
-        void 이미_선점된_좌석은_DUPLICATE() {
+        @DisplayName("이미 HELD 좌석 재시도 → ALREADY_HELD")
+        void 이미_선점된_좌석은_ALREADY_HELD() {
             List<Long> ids = audienceIds();
-            redisLockService.hold(SEAT_NO, ids.get(0));
+            redisLockService.hold(seatId, ids.get(0));
 
-            assertThat(redisLockService.hold(SEAT_NO, ids.get(1)))
-                    .isEqualTo(SeatHoldResult.DUPLICATE);
+            assertThat(redisLockService.hold(seatId, ids.get(1)))
+                    .isEqualTo(SeatHoldResult.ALREADY_HELD);
         }
 
         @Test
         @DisplayName("존재하지 않는 audience → FAIL")
         void 존재하지_않는_audience는_FAIL() {
-            assertThat(redisLockService.hold(SEAT_NO, -1L))
+            assertThat(redisLockService.hold(seatId, -1L))
                     .isEqualTo(SeatHoldResult.FAIL);
         }
 
@@ -314,7 +307,7 @@ class SeatLockConcurrencyTest {
         @DisplayName("N개 동시 요청 → 정확히 1개만 SUCCESS")
         void 동시_요청_정확히_1개_SUCCESS() throws InterruptedException {
             List<SeatHoldResult> results =
-                    runConcurrently(audienceIds(), id -> redisLockService.hold(SEAT_NO, id));
+                    runConcurrently(audienceIds(), id -> redisLockService.hold(seatId, id));
 
             assertThat(results).hasSize(THREAD_COUNT);
             assertThat(results.stream().filter(r -> r == SeatHoldResult.SUCCESS).count())
@@ -322,27 +315,26 @@ class SeatLockConcurrencyTest {
         }
 
         @Test
-        @DisplayName("N개 동시 요청 → 나머지는 모두 DUPLICATE (순차 실행 보장)")
-        void 동시_요청_나머지는_DUPLICATE() throws InterruptedException {
+        @DisplayName("N개 동시 요청 → 나머지는 모두 ALREADY_HELD (순차 실행 보장)")
+        void 동시_요청_나머지는_ALREADY_HELD() throws InterruptedException {
             List<SeatHoldResult> results =
-                    runConcurrently(audienceIds(), id -> redisLockService.hold(SEAT_NO, id));
+                    runConcurrently(audienceIds(), id -> redisLockService.hold(seatId, id));
 
-            long notSuccess = results.stream().filter(r -> r != SeatHoldResult.SUCCESS).count();
-            long duplicate  = results.stream().filter(r -> r == SeatHoldResult.DUPLICATE).count();
+            long notSuccess  = results.stream().filter(r -> r != SeatHoldResult.SUCCESS).count();
+            long alreadyHeld = results.stream().filter(r -> r == SeatHoldResult.ALREADY_HELD).count();
 
-            // Redis 락으로 완전한 순차 실행 보장 → 이후 요청은 모두 seat=HELD 확인 후 DUPLICATE
-            assertThat(duplicate).isEqualTo(notSuccess);
+            assertThat(alreadyHeld).isEqualTo(notSuccess);
         }
 
         @Test
         @DisplayName("N개 동시 요청 후 DB 상태 검증 → seat HELD + acquiredSeat 1건")
         void 동시_요청_후_DB_상태_검증() throws InterruptedException {
-            runConcurrently(audienceIds(), id -> redisLockService.hold(SEAT_NO, id));
+            runConcurrently(audienceIds(), id -> redisLockService.hold(seatId, id));
 
-            Seat seat = seatRepository.findByNo(SEAT_NO).orElseThrow();
+            Seat seat = seatRepository.findById(seatId).orElseThrow();
             assertThat(seat.getSeatStatus()).isEqualTo(SeatStatus.HELD);
             assertThat(seat.getHolderId()).isNotNull();
-            assertThat(countAudiencesWithAcquiredSeat(SEAT_NO)).isEqualTo(1);
+            assertThat(countAudiencesWithAcquiredSeat(seatId)).isEqualTo(1);
         }
     }
 }

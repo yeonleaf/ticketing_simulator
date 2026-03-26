@@ -3,6 +3,7 @@ package com.ticketing.domain.simulation;
 import com.ticketing.domain.audience.Audience;
 import com.ticketing.domain.audience.AudienceDistributionStrategy;
 import com.ticketing.domain.audience.AudienceRepository;
+import com.ticketing.domain.audience.AudienceService;
 import com.ticketing.domain.seat.*;
 import com.ticketing.domain.show.Show;
 import com.ticketing.domain.show.ShowRepository;
@@ -24,7 +25,7 @@ import java.util.concurrent.*;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Transactional
 public class SimulationService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -35,13 +36,14 @@ public class SimulationService {
     private final RedisSeatLockService redisSeatLockService;
     private final SimulationRepository simulationRepository;
     private final AudienceRepository audienceRepository;
+    private final AudienceService audienceService;
     private final SimulationStatusService simulationStatusService;
 
     /**
      * Simulation 생성 (READY 상태) + 가상 Audience (audienceCount - 1)명 생성
      */
     @Transactional
-    public Simulation createSimulation(Long showId, LockStrategy lockStrategy,
+    public Simulation createSimulation(Long showId, LockStrategy lockStrategy, ThreadStrategy threadStrategy,
                                        AudienceDistributionStrategy audienceDistributionStrategy) {
         // show 조회
         Show show = showRepository.findById(showId)
@@ -51,19 +53,23 @@ public class SimulationService {
         Simulation simulation = simulationRepository.save(Simulation.builder()
                 .showId(showId)
                 .lockStrategy(lockStrategy)
+                .threadStrategy(threadStrategy)
                 .audienceDistributionStrategy(audienceDistributionStrategy)
                 .build());
 
-        // 좌석 생성
-        List<Seat> seats = show.getSeatSettingStrategy().generateSeats(show.getId(), show.getMaxRow(), show.getMaxCol());
-        seats.forEach(seatRepository::save);
+        // 좌석 생성 (simulation.getId()로 저장해야 시뮬레이션별 조회 가능)
+        List<Seat> seats = show.getSeatSettingStrategy().generateSeats(simulation.getId(), show.getMaxRow(), show.getMaxCol());
+        seats.forEach(seatRepository::save);  // save 후 각 Seat에 id 부여됨
 
         // 가상 Audience 생성
         int virtualAudienceCount = show.getAudienceCount();
         List<Audience> audiences = audienceDistributionStrategy.distribute(
                 virtualAudienceCount, simulation.getId());
         audiences.forEach(audience -> {
-            audience.setPreferredSeatNos(audience.getStrategy().selectPreferred(seats, seats.size(), show.getMaxRow(), show.getMaxCol()));
+            List<Long> preferredIds = audience.getStrategy()
+                    .selectPreferred(seats, audience.getSeatCnt(), show.getMaxRow(), show.getMaxCol())
+                    .stream().map(Seat::getId).toList();
+            audience.setPreferredSeatIds(preferredIds);
         });
         audienceRepository.saveAll(audiences);
 
@@ -72,12 +78,19 @@ public class SimulationService {
 
     /**
      * 시뮬레이션 실행 (READY → RUNNING)
-     * 가상 관객들이 jitter 간격으로 /seats/{seatNo}/hold API를 동시 호출
+     * 가상 관객들이 jitter 간격으로 /seats/{seatId}/hold API를 동시 호출
      * 완료 후 DONE으로 전환, 메트릭 집계
      */
     @Async
     public void startSimulation(Long simulationId) {
+        doRunSimulation(simulationId);
+    }
 
+    public void runSimulationSync(Long simulationId) {
+        doRunSimulation(simulationId);
+    }
+
+    private void doRunSimulation(Long simulationId) {
         try {
             Simulation simulation = simulationStatusService.updateSimulationStatusStart(simulationId);
 
@@ -101,23 +114,25 @@ public class SimulationService {
 
             List<Future<?>> futures = new ArrayList<>();
 
-            try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            try (
+                    ExecutorService executor = switch (simulation.getThreadStrategy()) {
+                        case VIRTUAL -> Executors.newVirtualThreadPerTaskExecutor();
+                        case PLATFORM -> Executors.newFixedThreadPool(audiences.size());
+                    }
+                ) {
                 for (Audience audience : audiences) {
                     Future<?> future = executor.submit(() -> {
                         try {
                             startLatch.await();
-                            for (Integer preferredSeatNo : audience.getPreferredSeatNos()) {
+                            for (Long preferredSeatId : audience.getPreferredSeatIds()) {
                                 Thread.sleep(audience.getSeatClickWaitJitter());
                                 long start = System.currentTimeMillis();
-                                SeatHoldResult result = seatLockService.hold(preferredSeatNo, audience.getId());
+                                SeatHoldResult result = seatLockService.hold(preferredSeatId, audience.getId());
                                 if (result != null) {
-                                    log.info("[Audience {}] {}번 자리 : {}", audience.getId(), preferredSeatNo, result);
+                                    log.info("[Audience {}] seatId={} : {}", audience.getId(), preferredSeatId, result);
                                 }
                                 long responseMs = System.currentTimeMillis() - start;
                                 results.add(new RequestResult(result, responseMs));
-                                if (result == SeatHoldResult.SUCCESS) {
-                                    audience.getAcquiredSeatNos().add(preferredSeatNo);
-                                }
                             }
                         } catch (Exception e) {
                             throw new RuntimeException(e);
@@ -154,20 +169,23 @@ public class SimulationService {
                     .filter(r -> r.holdResult() == SeatHoldResult.ALREADY_HELD)
                     .count();
 
+            // 락 서비스가 별도 트랜잭션으로 acquiredSeatIds를 DB에 저장했으므로 재조회
+            List<Audience> freshAudiences = audienceService.getAudiencesBySimulationId(simulationId);
+
             // 원하는 좌석을 전부 얻은 관객 수
-            int fullySatisfiedCount = (int) audiences.stream()
-                    .filter(a -> !a.getPreferredSeatNos().isEmpty())
-                    .filter(a -> a.getAcquiredSeatNos().containsAll(a.getPreferredSeatNos()))
+            int fullySatisfiedCount = (int) freshAudiences.stream()
+                    .filter(a -> !a.getPreferredSeatIds().isEmpty())
+                    .filter(a -> a.getAcquiredSeatIds().containsAll(a.getPreferredSeatIds()))
                     .count();
 
             // 최소 1석이라도 얻은 관객 수
-            int partiallySatisfiedCount = (int) audiences.stream()
-                    .filter(a -> !a.getAcquiredSeatNos().isEmpty())
+            int partiallySatisfiedCount = (int) freshAudiences.stream()
+                    .filter(a -> !a.getAcquiredSeatIds().isEmpty())
                     .count();
 
             // 아무것도 못 얻은 관객 수
-            int unsatisfiedCount = (int) audiences.stream()
-                    .filter(a -> a.getAcquiredSeatNos().isEmpty())
+            int unsatisfiedCount = (int) freshAudiences.stream()
+                    .filter(a -> a.getAcquiredSeatIds().isEmpty())
                     .count();
 
             // 뒷정리
@@ -185,6 +203,14 @@ public class SimulationService {
     public Simulation getSimulation(Long simulationId) {
         return simulationRepository.findById(simulationId)
                 .orElseThrow(() -> new IllegalArgumentException("Simulation not found: " + simulationId));
+    }
+
+    public List<Simulation> getSimulationsByShowId(Long showId) {
+        return simulationRepository.findByShowId(showId);
+    }
+
+    public List<Simulation> getDoneSimulationsByShowId(Long showId) {
+        return simulationRepository.findByShowIdAndStatus(showId, SimStatus.DONE);
     }
 
     record RequestResult(SeatHoldResult holdResult, long responseMs) {}

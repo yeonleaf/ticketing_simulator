@@ -7,7 +7,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -40,13 +39,13 @@ public class Audience {
 
     @ElementCollection
     @CollectionTable(name = "audience_preferred_seats", joinColumns = @JoinColumn(name = "audience_id"))
-    @Column(name = "seat_no")
-    private Set<Integer> preferredSeatNos = new HashSet<>();
+    @Column(name = "seat_id")
+    private Set<Long> preferredSeatIds = new HashSet<>();
 
     @ElementCollection
     @CollectionTable(name = "audience_acquired_seats", joinColumns = @JoinColumn(name = "audience_id"))
-    @Column(name = "seat_no")
-    private Set<Integer> acquiredSeatNos = new HashSet<>();
+    @Column(name = "seat_id")
+    private Set<Long> acquiredSeatIds = new HashSet<>();
 
     @Version
     private Long version;
@@ -61,11 +60,11 @@ public class Audience {
         this.strategy = strategy;
     }
 
-    public void setPreferredSeatNos(List<Integer> seatNos) {
-        this.preferredSeatNos = new HashSet<>(seatNos);
+    public void setPreferredSeatIds(List<Long> seatIds) {
+        this.preferredSeatIds = new HashSet<>(seatIds);
     }
 
-    public void addAcquiredSeat(int seatNo) {
-        this.acquiredSeatNos.add(seatNo);
+    public void addAcquiredSeat(Long seatId) {
+        this.acquiredSeatIds.add(seatId);
     }
 }

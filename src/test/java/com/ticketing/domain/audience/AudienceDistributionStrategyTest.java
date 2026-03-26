@@ -248,8 +248,8 @@ class AudienceDistributionStrategyTest {
                         .isGreaterThanOrEqualTo(500L)
                         .isLessThan(3000L);           // nextLong(500, 3000) → [500, 3000)
                 assertThat(a.getStrategy()).isNotNull();
-                assertThat(a.getPreferredSeatNos()).isEmpty();
-                assertThat(a.getAcquiredSeatNos()).isEmpty();
+                assertThat(a.getPreferredSeatIds()).isEmpty();
+                assertThat(a.getAcquiredSeatIds()).isEmpty();
                 assertThat(a.getSimulationId()).isEqualTo(SIM_ID);
             });
         }

@@ -157,7 +157,7 @@
                 el.className = 'seat-cell';
                 if (seat.seatStatus === 'HELD') el.classList.add('held');
                 if (seat.seatGrade === 'VIP') el.classList.add('vip');
-                el.title = `No.${seat.no} | 인기도: ${seat.hotScore}`;
+                el.title = `(${seat.row}행 ${seat.col}열) | 인기도: ${seat.hotScore}`;
                 el.setAttribute('data-bs-toggle', 'tooltip');
                 rowDiv.appendChild(el);
             }

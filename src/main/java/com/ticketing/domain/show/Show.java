@@ -35,13 +35,16 @@ public class Show {
     @Column(nullable = false)
     private SeatSettingStrategy seatSettingStrategy;
 
+    private Long loadTestId;
+
     @Builder
     public Show(String name, int maxRow, int maxCol, int audienceCount,
-                SeatSettingStrategy seatSettingStrategy) {
+                SeatSettingStrategy seatSettingStrategy, Long loadTestId) {
         this.name = name;
         this.maxRow = maxRow;
         this.maxCol = maxCol;
         this.audienceCount = audienceCount;
         this.seatSettingStrategy = seatSettingStrategy;
+        this.loadTestId = loadTestId;
     }
 }

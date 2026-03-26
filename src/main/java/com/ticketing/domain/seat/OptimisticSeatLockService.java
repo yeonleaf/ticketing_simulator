@@ -2,15 +2,16 @@ package com.ticketing.domain.seat;
 
 import com.ticketing.domain.audience.Audience;
 import com.ticketing.domain.audience.AudienceRepository;
-import jakarta.persistence.OptimisticLockException;
-import jakarta.transaction.Transactional;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,33 +20,44 @@ import java.util.List;
 public class OptimisticSeatLockService implements SeatLockService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-
     private final SeatRepository seatRepository;
     private final AudienceRepository audienceRepository;
+    private final PlatformTransactionManager txManager;
 
-    @Transactional
-    public SeatHoldResult hold(int seatNo, Long audienceId) {
+    private TransactionTemplate transactionTemplate;
+
+    @PostConstruct
+    void init() {
+        transactionTemplate = new TransactionTemplate(txManager);
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    }
+
+    public SeatHoldResult hold(Long seatId, Long audienceId) {
         try {
-            Audience audience = audienceRepository.findById(audienceId)
-                    .orElse(null);
-            if (audience == null) return SeatHoldResult.AUDIENCE_NOT_FOUND;
+            // TransactionTemplate: 예외 발생 시 트랜잭션을 rollback 후 re-throw
+            // → 트랜잭션 경계 밖에서 예외를 catch하므로 UnexpectedRollbackException 없음
+            return transactionTemplate.execute(status -> {
+                Audience audience = audienceRepository.findById(audienceId)
+                        .orElse(null);
+                if (audience == null) return SeatHoldResult.AUDIENCE_NOT_FOUND;
 
-            Seat seat = seatRepository.findByNo(seatNo)
-                    .orElse(null);
-            if (seat == null) return SeatHoldResult.SEAT_NOT_FOUND;
-            if (!seat.isAvailable()) return SeatHoldResult.ALREADY_HELD;
+                Seat seat = seatRepository.findById(seatId)
+                        .orElse(null);
+                if (seat == null) return SeatHoldResult.SEAT_NOT_FOUND;
+                if (!seat.isAvailable()) return SeatHoldResult.ALREADY_HELD;
 
-            seat.hold(audienceId);
-            seatRepository.save(seat);  // @Version 충돌 시 예외
+                seat.hold(audienceId);
+                seatRepository.saveAndFlush(seat);
 
-            audience.getAcquiredSeatNos().add(seatNo);
-            audienceRepository.save(audience);  // @Version 충돌 시 예외
+                audience.addAcquiredSeat(seatId);
+                audienceRepository.save(audience);
 
-            return SeatHoldResult.SUCCESS;
+                return SeatHoldResult.SUCCESS;
+            });
         } catch (ObjectOptimisticLockingFailureException e) {
             return SeatHoldResult.LOCK_CONFLICT;
         } catch (Exception e) {
-            log.error("좌석 선점 중 예상치 못한 에러 발생 (seatNo={})", seatNo, e);
+            log.error("좌석 선점 중 예상치 못한 에러 발생 (seatId={})", seatId, e);
             return SeatHoldResult.FAIL;
         }
     }

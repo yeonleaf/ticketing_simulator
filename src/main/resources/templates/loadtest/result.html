@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title>부하 테스트 결과</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <style>
+        .chart-container { position: relative; height: 300px; }
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="/shows" class="text-decoration-none text-muted">&larr; 공연 목록</a>
+        <h4 class="mb-0">부하 테스트 결과</h4>
+        <span id="statusBadge" class="badge bg-secondary fs-6">로딩 중...</span>
+        <span id="progressText" class="text-muted small"></span>
+    </div>
+
+    <!-- 공연 정보 -->
+    <div id="showInfo" class="alert alert-light border mb-4" style="display:none">
+        <span class="text-muted small">대상 공연</span>
+        <strong id="showName" class="ms-2"></strong>
+        <span class="text-muted small ms-3">부하 테스트 ID: </span>
+        <span id="ltId" class="fw-bold"></span>
+    </div>
+
+    <!-- 결과 그래프 -->
+    <div id="resultsSection" style="display:none">
+        <ul class="nav nav-tabs mb-4" id="distTab">
+            <li class="nav-item">
+                <button class="nav-link active" onclick="switchTab('MUSICAL_HEAVY_FRONT', this)">MUSICAL_HEAVY_FRONT</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" onclick="switchTab('UNIFORM', this)">UNIFORM</button>
+            </li>
+        </ul>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header small fw-semibold">Total TPS (관객 수별)</div>
+                    <div class="card-body"><div class="chart-container"><canvas id="chartTps"></canvas></div></div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header small fw-semibold">평균 응답시간 ms (관객 수별)</div>
+                    <div class="card-body"><div class="chart-container"><canvas id="chartMs"></canvas></div></div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header small fw-semibold">중복 선점 횟수 (관객 수별)</div>
+                    <div class="card-body"><div class="chart-container"><canvas id="chartDuplicate"></canvas></div></div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header small fw-semibold">완전 만족 관객 수 (관객 수별)</div>
+                    <div class="card-body"><div class="chart-container"><canvas id="chartSatisfied"></canvas></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script th:inline="javascript">
+    const loadTestId = [[${loadTestId}]];
+
+    // 락 전략 × 스레드 전략 6개 조합 색상
+    const SERIES = [
+        { key: 'PESSIMISTIC-VIRTUAL',     label: 'PESSIMISTIC / VIRTUAL',     color: '#0d6efd', dash: [] },
+        { key: 'PESSIMISTIC-PLATFORM',    label: 'PESSIMISTIC / PLATFORM',    color: '#0d6efd', dash: [6, 3] },
+        { key: 'OPTIMISTIC-VIRTUAL',      label: 'OPTIMISTIC / VIRTUAL',      color: '#198754', dash: [] },
+        { key: 'OPTIMISTIC-PLATFORM',     label: 'OPTIMISTIC / PLATFORM',     color: '#198754', dash: [6, 3] },
+        { key: 'REDIS_REDISSON-VIRTUAL',  label: 'REDIS_REDISSON / VIRTUAL',  color: '#dc3545', dash: [] },
+        { key: 'REDIS_REDISSON-PLATFORM', label: 'REDIS_REDISSON / PLATFORM', color: '#dc3545', dash: [6, 3] },
+    ];
+
+    let charts = {};
+    let pollInterval = null;
+    let currentTab = 'MUSICAL_HEAVY_FRONT';
+    let reportData = null;
+
+    // ── 폴링 ────────────────────────────────────────────────────────────────
+    async function poll() {
+        try {
+            const res = await fetch(`/api/load-tests/${loadTestId}/report`);
+            if (!res.ok) return;
+            reportData = await res.json();
+
+            // 공연 정보 표시
+            document.getElementById('showInfo').style.display = 'block';
+            document.getElementById('showName').textContent = reportData.sourceShowName;
+            document.getElementById('ltId').textContent = reportData.loadTestId;
+
+            // 진행 상황
+            const total = reportData.results.length;
+            const done  = reportData.results.filter(r =>
+                r.simulations.every(s => s.status === 'DONE' || s.status === 'FAIL')
+            ).length;
+            document.getElementById('progressText').textContent =
+                total > 0 ? `(${done} / ${total} 단계 완료)` : '';
+
+            updateStatusBadge(reportData.status);
+
+            if (reportData.status === 'DONE') {
+                clearInterval(pollInterval);
+                document.getElementById('resultsSection').style.display = 'block';
+                renderCharts(currentTab);
+            } else if (reportData.status === 'FAIL') {
+                clearInterval(pollInterval);
+            }
+        } catch (e) {
+            console.error('폴링 오류', e);
+        }
+    }
+
+    // ── 탭 전환 ─────────────────────────────────────────────────────────────
+    function switchTab(dist, el) {
+        document.querySelectorAll('#distTab .nav-link').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
+        currentTab = dist;
+        if (reportData && reportData.status === 'DONE') renderCharts(dist);
+    }
+
+    // ── 차트 렌더링 ──────────────────────────────────────────────────────────
+    function renderCharts(distStrategy) {
+        const labels = reportData.results.map(r => r.audienceCount);
+
+        function datasets(metricFn) {
+            return SERIES.map(s => {
+                const [lock, thread] = s.key.split('-');
+                return {
+                    label: s.label,
+                    data: reportData.results.map(r => {
+                        const sim = r.simulations.find(x =>
+                            x.lockStrategy === lock &&
+                            x.threadStrategy === thread &&
+                            x.audienceDistributionStrategy === distStrategy
+                        );
+                        return sim ? metricFn(sim) : null;
+                    }),
+                    borderColor: s.color,
+                    backgroundColor: s.color + '22',
+                    borderDash: s.dash,
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    tension: 0.2,
+                    fill: false,
+                };
+            });
+        }
+
+        function makeChart(id, yLabel, metricFn) {
+            if (charts[id]) charts[id].destroy();
+            charts[id] = new Chart(document.getElementById(id), {
+                type: 'line',
+                data: { labels, datasets: datasets(metricFn) },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: '관객 수' } },
+                        y: { title: { display: true, text: yLabel }, beginAtZero: true },
+                    },
+                    plugins: { legend: { position: 'bottom' } },
+                },
+            });
+        }
+
+        makeChart('chartTps',       'TPS',    s => parseFloat(s.totalTps.toFixed(2)));
+        makeChart('chartMs',        'ms',     s => s.avgResponseMs);
+        makeChart('chartDuplicate', '횟수',   s => s.duplicateHoldCount);
+        makeChart('chartSatisfied', '관객 수', s => s.fullySatisfiedCount);
+    }
+
+    // ── 상태 배지 ────────────────────────────────────────────────────────────
+    function updateStatusBadge(status) {
+        const el = document.getElementById('statusBadge');
+        const map = { READY: 'bg-secondary', RUNNING: 'bg-warning text-dark', DONE: 'bg-success', FAIL: 'bg-danger' };
+        el.className = 'badge fs-6 ' + (map[status] || 'bg-secondary');
+        el.textContent = status;
+    }
+
+    // 시작
+    pollInterval = setInterval(poll, 3000);
+    poll();
+</script>
+</div>
+</body>
+</html>

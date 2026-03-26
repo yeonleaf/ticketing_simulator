@@ -19,7 +19,7 @@ public enum SeatPreferenceStrategy {
         @Override
         public Comparator<Seat> comparator(int maxRow, int maxCol) {
             return Comparator.comparingInt(Seat::getHotScore).reversed()
-                    .thenComparingInt(Seat::getNo);
+                    .thenComparingInt(Seat::getRow).thenComparingInt(Seat::getCol);
         }
     },
 
@@ -32,7 +32,7 @@ public enum SeatPreferenceStrategy {
         @Override
         public Comparator<Seat> comparator(int maxRow, int maxCol) {
             return Comparator.comparingInt(Seat::getHotScore)
-                    .thenComparingInt(Seat::getNo);
+                    .thenComparingInt(Seat::getRow).thenComparingInt(Seat::getCol);
         }
     },
 
@@ -47,7 +47,7 @@ public enum SeatPreferenceStrategy {
             double center = (maxCol - 1) / 2.0;
             return Comparator.comparingInt(Seat::getRow)
                     .thenComparingDouble(s -> Math.abs(s.getCol() - center))
-                    .thenComparingInt(Seat::getNo);
+                    .thenComparingInt(Seat::getCol);
         }
     },
 
@@ -60,8 +60,7 @@ public enum SeatPreferenceStrategy {
         @Override
         public Comparator<Seat> comparator(int maxRow, int maxCol) {
             return Comparator.comparingInt(Seat::getRow)
-                    .thenComparing(Seat::getCol, Comparator.reverseOrder())
-                    .thenComparingInt(Seat::getNo);
+                    .thenComparing(Seat::getCol, Comparator.reverseOrder());
         }
     },
 
@@ -74,8 +73,7 @@ public enum SeatPreferenceStrategy {
         @Override
         public Comparator<Seat> comparator(int maxRow, int maxCol) {
             return Comparator.comparingInt(Seat::getRow)
-                    .thenComparingInt(Seat::getCol)
-                    .thenComparingInt(Seat::getNo);
+                    .thenComparingInt(Seat::getCol);
         }
     },
 
@@ -90,7 +88,7 @@ public enum SeatPreferenceStrategy {
             double center = (maxCol - 1) / 2.0;
             double midRow = (maxRow - 1) / 2.0;
             return Comparator.comparingDouble((Seat s) -> Math.abs(s.getRow() - midRow) + Math.abs(s.getCol() - center))
-                    .thenComparingInt(Seat::getNo);
+                    .thenComparingInt(Seat::getRow).thenComparingInt(Seat::getCol);
         }
     },
 
@@ -105,7 +103,7 @@ public enum SeatPreferenceStrategy {
             double center = (maxCol - 1) / 2.0;
             return Comparator.comparingInt(Seat::getRow).reversed()
                     .thenComparingDouble(s -> Math.abs(s.getCol() - center))
-                    .thenComparingInt(Seat::getNo);
+                    .thenComparingInt(Seat::getCol);
         }
     },
 
@@ -118,7 +116,7 @@ public enum SeatPreferenceStrategy {
         @Override
         public Comparator<Seat> comparator(int maxRow, int maxCol) {
             return Comparator.comparingInt(Seat::getHotScore).reversed()
-                    .thenComparingInt(Seat::getNo);
+                    .thenComparingInt(Seat::getRow).thenComparingInt(Seat::getCol);
         }
     },
 
@@ -131,7 +129,7 @@ public enum SeatPreferenceStrategy {
         @Override
         public Comparator<Seat> comparator(int maxRow, int maxCol) {
             return Comparator.comparingInt(Seat::getHotScore).reversed()
-                    .thenComparingInt(Seat::getNo);
+                    .thenComparingInt(Seat::getRow).thenComparingInt(Seat::getCol);
         }
     };
 
@@ -139,12 +137,12 @@ public enum SeatPreferenceStrategy {
 
     public abstract Comparator<Seat> comparator(int maxRow, int maxCol);
 
-    public List<Integer> selectPreferred(List<Seat> seats, int seatCnt, int maxRow, int maxCol) {
+    public List<Seat> selectPreferred(List<Seat> seats, int seatCnt, int maxRow, int maxCol) {
         return selectPreferred(seats, seatCnt, maxRow, maxCol, new Random());
     }
 
-    public List<Integer> selectPreferred(List<Seat> seats, int seatCnt, int maxRow, int maxCol, Random random) {
-        // Step 1: filter — AVAILABLE + strategy filter (방어적 복사)
+    public List<Seat> selectPreferred(List<Seat> seats, int seatCnt, int maxRow, int maxCol, Random random) {
+        // Step 1: filter — AVAILABLE + strategy filter
         List<Seat> filtered = new ArrayList<>(seats).stream()
                 .filter(s -> s.getSeatStatus() == SeatStatus.AVAILABLE)
                 .filter(filter())
@@ -166,8 +164,6 @@ public enum SeatPreferenceStrategy {
 
         // Step 5: pick — 앞에서 seatCnt개
         int pickCnt = Math.min(seatCnt, pool.size());
-        return pool.subList(0, pickCnt).stream()
-                .map(Seat::getNo)
-                .collect(Collectors.toList());
+        return new ArrayList<>(pool.subList(0, pickCnt));
     }
 }

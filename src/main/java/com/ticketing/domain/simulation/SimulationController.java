@@ -1,6 +1,5 @@
 package com.ticketing.domain.simulation;
 
-import com.ticketing.domain.audience.AudienceDistributionStrategy;
 import com.ticketing.domain.seat.Seat;
 import com.ticketing.domain.seat.SeatRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,23 +20,16 @@ public class SimulationController {
         return ResponseEntity.ok(simulationService.getAllSimulations());
     }
 
+    @GetMapping("/api/simulations/compare")
+    public ResponseEntity<List<Simulation>> getCompare(@RequestParam Long showId) {
+        return ResponseEntity.ok(simulationService.getDoneSimulationsByShowId(showId));
+    }
+
     @GetMapping("/api/simulations/{id}")
     public ResponseEntity<SimulationResponse> getSimulation(@PathVariable Long id) {
         Simulation simulation = simulationService.getSimulation(id);
         List<Seat> seats = seatRepository.findAllBySimulationId(id);
         return ResponseEntity.ok(new SimulationResponse(simulation, seats));
-    }
-
-    /**
-     * POST /api/shows/{showId}/simulations
-     * Simulation 생성 (READY 상태) + 가상 Audience (audienceCount - 1)명 생성
-     */
-    @PostMapping("/api/shows/{showId}/simulations")
-    public ResponseEntity<Simulation> createSimulation(
-            @PathVariable Long showId,
-            @RequestBody CreateSimulationRequest request) {
-        return ResponseEntity.ok(simulationService.createSimulation(
-                showId, request.lockStrategy(), request.audienceDistributionStrategy()));
     }
 
     /**
@@ -50,6 +42,7 @@ public class SimulationController {
         return ResponseEntity.ok().build();
     }
 
+
     /**
      * GET /api/simulations/{id}/report
      * 시뮬레이션 결과 리포트 반환
@@ -58,8 +51,4 @@ public class SimulationController {
     public ResponseEntity<Simulation> getSimulationReport(@PathVariable Long id) {
         return ResponseEntity.ok(simulationService.getSimulation(id));
     }
-
-    public record CreateSimulationRequest(
-            LockStrategy lockStrategy,
-            AudienceDistributionStrategy audienceDistributionStrategy) {}
 }

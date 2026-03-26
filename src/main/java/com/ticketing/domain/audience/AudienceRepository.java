@@ -12,8 +12,8 @@ import java.util.Optional;
 public interface AudienceRepository extends JpaRepository<Audience, Long> {
 
     @Query("SELECT a FROM Audience a " +
-            "LEFT JOIN FETCH a.preferredSeatNos " +
-            "LEFT JOIN FETCH a.acquiredSeatNos " +
+            "LEFT JOIN FETCH a.preferredSeatIds " +
+            "LEFT JOIN FETCH a.acquiredSeatIds " +
             "WHERE a.simulationId = :simulationId")
     List<Audience> findAllBySimulationId(Long simulationId);
 

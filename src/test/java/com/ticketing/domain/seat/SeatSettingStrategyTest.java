@@ -302,11 +302,11 @@ class SeatSettingStrategyTest {
     }
 
     // ──────────────────────────────────────────────────────────────
-    // 5. 좌석 번호 연속성 검증
+    // 5. 좌석 생성 기본 검증
     // ──────────────────────────────────────────────────────────────
     @Nested
-    @DisplayName("좌석 번호 연속성 검증")
-    class SeatNumberTest {
+    @DisplayName("좌석 생성 기본 검증")
+    class SeatGenerationTest {
 
         @Test
         @DisplayName("10행_16열_총_160석이_생성된다")
@@ -316,22 +316,12 @@ class SeatSettingStrategyTest {
         }
 
         @Test
-        @DisplayName("좌석_번호가_1부터_160까지_빠짐없이_순차_생성된다")
-        void 좌석_번호가_1부터_160까지_순차_생성된다() {
-            List<Seat> seats = MUSICAL_STANDARD.generateSeats(1L, 10, 16);
-            List<Integer> seatNos = seats.stream().map(Seat::getNo).toList();
-            for (int i = 1; i <= 160; i++) {
-                assertThat(seatNos).contains(i);
-            }
-        }
-
-        @Test
-        @DisplayName("모든_좌석의_showId가_올바르게_세팅된다")
-        void 모든_좌석의_showId가_올바르게_세팅된다() {
-            long showId = 42L;
-            List<Seat> seats = MUSICAL_STANDARD.generateSeats(showId, 10, 16);
+        @DisplayName("모든_좌석의_simulationId가_올바르게_세팅된다")
+        void 모든_좌석의_simulationId가_올바르게_세팅된다() {
+            long simId = 42L;
+            List<Seat> seats = MUSICAL_STANDARD.generateSeats(simId, 10, 16);
             assertThat(seats).allSatisfy(seat ->
-                    assertThat(seat.getShowId()).isEqualTo(showId)
+                    assertThat(seat.getSimulationId()).isEqualTo(simId)
             );
         }
 
@@ -342,6 +332,18 @@ class SeatSettingStrategyTest {
             assertThat(seats).allSatisfy(seat ->
                     assertThat(seat.getSeatStatus()).isEqualTo(SeatStatus.AVAILABLE)
             );
+        }
+
+        @Test
+        @DisplayName("모든_row_col_조합이_빠짐없이_생성된다")
+        void 모든_row_col_조합이_생성된다() {
+            List<Seat> seats = MUSICAL_STANDARD.generateSeats(1L, 10, 16);
+            for (int r = 0; r < 10; r++) {
+                for (int c = 0; c < 16; c++) {
+                    final int row = r, col = c;
+                    assertThat(seats).anyMatch(s -> s.getRow() == row && s.getCol() == col);
+                }
+            }
         }
     }
 }

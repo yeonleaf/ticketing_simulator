@@ -10,8 +10,8 @@
             <a href="/shows" class="text-decoration-none text-muted">&larr; 공연 목록</a>
             <h4 class="mt-1 mb-0" th:text="${show.name}"></h4>
         </div>
-        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#simModal">
-            + 시뮬레이션 생성
+        <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#loadTestModal">
+            ⚡ 부하 테스트
         </button>
     </div>
 
@@ -53,36 +53,97 @@
         </div>
     </div>
 
-    <!-- Simulation Creation Modal -->
-    <div class="modal fade" id="simModal" tabindex="-1">
+    <!-- Simulation List -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">이 공연의 시뮬레이션 목록</span>
+            <a th:href="|/shows/${show.id}/compare|" class="btn btn-sm btn-outline-info">
+                📊 락 전략 비교 차트
+            </a>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>락 전략</th>
+                        <th>스레드 전략</th>
+                        <th>관객 분포 전략</th>
+                        <th>상태</th>
+                        <th>액션</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:if="${#lists.isEmpty(simulations)}">
+                        <td colspan="6" class="text-center text-muted py-3">시뮬레이션이 없습니다.</td>
+                    </tr>
+                    <tr th:each="sim : ${simulations}">
+                        <td th:text="${sim.id}"></td>
+                        <td>
+                            <span th:text="${sim.lockStrategy}"
+                                  th:classappend="${sim.lockStrategy.name() == 'PESSIMISTIC' ? 'bg-primary' :
+                                                   sim.lockStrategy.name() == 'OPTIMISTIC'  ? 'bg-success' :
+                                                                                               'bg-danger'}"
+                                  class="badge"></span>
+                        </td>
+                        <td th:text="${sim.threadStrategy}"></td>
+                        <td th:text="${sim.audienceDistributionStrategy}"></td>
+                        <td>
+                            <span th:text="${sim.status}"
+                                  th:classappend="${sim.status.name() == 'READY'   ? 'bg-secondary' :
+                                                   sim.status.name() == 'RUNNING' ? 'bg-warning text-dark' :
+                                                                                     'bg-success'}"
+                                  class="badge"></span>
+                        </td>
+                        <td class="d-flex gap-1">
+                            <button th:disabled="${sim.status.name() != 'READY'}"
+                                    th:onclick="|location.href='/simulations/${sim.id}/run'|"
+                                    class="btn btn-sm btn-warning">
+                                실행
+                            </button>
+                            <a th:if="${sim.status.name() == 'DONE' or sim.status.name() == 'FAIL'}"
+                               th:href="|/simulations/${sim.id}/run|"
+                               class="btn btn-sm btn-outline-secondary">
+                                결과 보기
+                            </a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 부하 테스트 모달 -->
+    <div class="modal fade" id="loadTestModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">시뮬레이션 생성</h5>
+                    <h5 class="modal-title">⚡ 부하 테스트</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">락 전략</label>
-                        <select id="lockStrategy" class="form-select">
-                            <option value="PESSIMISTIC">PESSIMISTIC – 비관적 락 (SELECT FOR UPDATE)</option>
-                            <option value="OPTIMISTIC">OPTIMISTIC – 낙관적 락 (@Version)</option>
-                            <option value="REDIS_REDISSON">REDIS_REDISSON – Redis 분산 락</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">관객 분포 전략</label>
-                        <select id="audienceDistributionStrategy" class="form-select">
-                            <option value="MUSICAL_HEAVY_FRONT">MUSICAL_HEAVY_FRONT – 앞줄 집중 (뮤지컬형)</option>
-                            <option value="CONCERT_RUSH">CONCERT_RUSH – 최고 인기 좌석 러시 (콘서트형)</option>
-                            <option value="BALANCED">BALANCED – 균형 분포</option>
-                            <option value="UNIFORM">UNIFORM – 균등 분포</option>
-                        </select>
+                    <p class="text-muted small mb-3">
+                        이 공연(<strong th:text="${show.name}"></strong>)의 좌석 설정을 그대로 유지하면서
+                        관객 수만 바꿔 가며 12개 시뮬레이션을 순차 실행합니다.
+                    </p>
+                    <div class="row g-3">
+                        <div class="col-4">
+                            <label class="form-label">시작 관객 수</label>
+                            <input type="number" id="lt_startAudience" class="form-control" min="1" value="50">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">종료 관객 수</label>
+                            <input type="number" id="lt_endAudience" class="form-control" min="1" value="200">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label">증가 단위 (step)</label>
+                            <input type="number" id="lt_step" class="form-control" min="1" value="50">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
-                    <button type="button" class="btn btn-primary" id="createSimBtn" onclick="createSimulation()">확인</button>
+                    <button type="button" class="btn btn-danger" id="ltStartBtn" onclick="startLoadTest()">⚡ 시작</button>
                 </div>
             </div>
         </div>
@@ -91,25 +152,28 @@
 <script th:inline="javascript">
     const showId = [[${show.id}]];
 
-    async function createSimulation() {
-        const btn = document.getElementById('createSimBtn');
+    async function startLoadTest() {
+        const btn = document.getElementById('ltStartBtn');
         btn.disabled = true;
         btn.textContent = '생성 중...';
         try {
-            const res = await fetch(`/api/shows/${showId}/simulations`, {
+            const res = await fetch('/api/load-tests', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    lockStrategy: document.getElementById('lockStrategy').value,
-                    audienceDistributionStrategy: document.getElementById('audienceDistributionStrategy').value
+                    showId: showId,
+                    startAudience: parseInt(document.getElementById('lt_startAudience').value),
+                    endAudience:   parseInt(document.getElementById('lt_endAudience').value),
+                    step:          parseInt(document.getElementById('lt_step').value),
                 })
             });
             if (!res.ok) throw new Error(await res.text());
-            location.href = '/simulations';
+            const { loadTestId } = await res.json();
+            location.href = `/load-test/${loadTestId}`;
         } catch (err) {
-            alert('시뮬레이션 생성 실패: ' + err.message);
+            alert('부하 테스트 시작 실패: ' + err.message);
             btn.disabled = false;
-            btn.textContent = '확인';
+            btn.textContent = '⚡ 시작';
         }
     }
 </script>

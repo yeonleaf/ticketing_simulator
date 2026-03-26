@@ -1,6 +1,7 @@
 package com.ticketing.web;
 
 import com.ticketing.domain.show.ShowService;
+import com.ticketing.domain.simulation.SimulationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 public class ShowViewController {
 
     private final ShowService showService;
+    private final SimulationService simulationService;
 
     @GetMapping("/")
     public String index() {
@@ -32,6 +34,13 @@ public class ShowViewController {
     @GetMapping("/shows/{id}")
     public String showDetail(@PathVariable Long id, Model model) {
         model.addAttribute("show", showService.getShow(id));
+        model.addAttribute("simulations", simulationService.getSimulationsByShowId(id));
         return "show/detail";
+    }
+
+    @GetMapping("/shows/{id}/compare")
+    public String showCompare(@PathVariable Long id, Model model) {
+        model.addAttribute("show", showService.getShow(id));
+        return "simulation/compare";
     }
 }

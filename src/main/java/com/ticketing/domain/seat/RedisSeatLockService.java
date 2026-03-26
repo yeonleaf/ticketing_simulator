@@ -7,6 +7,8 @@ import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -18,15 +20,16 @@ public class RedisSeatLockService implements SeatLockService {
     private final RedissonClient redissonClient;
     private final RedisSeatLockInternalService internalService;
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Override
-    public SeatHoldResult hold(int seatNo, Long audienceId) {
-        RLock lock = redissonClient.getLock("seat:lock:" + seatNo);
+    public SeatHoldResult hold(Long seatId, Long audienceId) {
+        RLock lock = redissonClient.getLock("seat:lock:" + seatId);
         try {
             boolean acquired = lock.tryLock(5, -1, TimeUnit.SECONDS);
             if (!acquired) return SeatHoldResult.LOCK_TIMEOUT;
 
             try {
-                return internalService.doHold(seatNo, audienceId);
+                return internalService.doHold(seatId, audienceId);
             } finally {
                 if (lock.isHeldByCurrentThread()) {
                     lock.unlock();  // 커밋 이후에 락 해제
@@ -36,7 +39,7 @@ public class RedisSeatLockService implements SeatLockService {
             Thread.currentThread().interrupt();
             return SeatHoldResult.LOCK_TIMEOUT;
         } catch (Exception e) {
-            log.error("Redisson 락 처리 중 예상치 못한 에러 (seatNo={})", seatNo, e);
+            log.error("Redisson 락 처리 중 예상치 못한 에러 (seatId={})", seatId, e);
             return SeatHoldResult.FAIL;
         }
     }

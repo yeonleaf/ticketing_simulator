@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head>
+    <title>부하 테스트</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <style>
+        .chart-container { position: relative; height: 320px; }
+        #statusBanner { display: none; }
+        #resultsSection { display: none; }
+    </style>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <h4 class="mb-4">⚡ 부하 테스트</h4>
+
+    <!-- 파라미터 입력 폼 -->
+    <div class="card mb-4">
+        <div class="card-header fw-semibold">테스트 설정</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">좌석 수 (seatCount)</label>
+                    <input type="number" id="seatCount" class="form-control" min="1" value="100">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">시작 관객 수 (startAudience)</label>
+                    <input type="number" id="startAudience" class="form-control" min="1" value="50">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">종료 관객 수 (endAudience)</label>
+                    <input type="number" id="endAudience" class="form-control" min="1" value="200">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">증가 단위 (step)</label>
+                    <input type="number" id="step" class="form-control" min="1" value="50">
+                </div>
+            </div>
+            <div class="alert alert-info py-2 mt-3 mb-0 small">
+                각 관객 수마다 공연 1개 + 시뮬레이션 12개(락 전략 3 × 스레드 전략 2 × 관객 분포 전략 2)가 순차 실행됩니다.
+            </div>
+        </div>
+        <div class="card-footer d-flex gap-2 align-items-center">
+            <button id="runBtn" class="btn btn-danger" onclick="startLoadTest()">⚡ 부하 테스트 시작</button>
+            <span id="statusBanner" class="badge fs-6"></span>
+            <span id="progressText" class="text-muted small ms-1"></span>
+        </div>
+    </div>
+
+    <!-- 결과 그래프 -->
+    <div id="resultsSection">
+        <ul class="nav nav-tabs mb-3" id="distTab">
+            <li class="nav-item">
+                <button class="nav-link active" onclick="switchTab('MUSICAL_HEAVY_FRONT', this)">MUSICAL_HEAVY_FRONT</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" onclick="switchTab('UNIFORM', this)">UNIFORM</button>
+            </li>
+        </ul>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header small fw-semibold">Total TPS (관객 수별)</div>
+                    <div class="card-body">
+                        <div class="chart-container"><canvas id="chartTps"></canvas></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header small fw-semibold">평균 응답시간 ms (관객 수별)</div>
+                    <div class="card-body">
+                        <div class="chart-container"><canvas id="chartMs"></canvas></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header small fw-semibold">중복 선점 횟수 (관객 수별)</div>
+                    <div class="card-body">
+                        <div class="chart-container"><canvas id="chartDuplicate"></canvas></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header small fw-semibold">관객 만족도 — 완전 만족 수 (관객 수별)</div>
+                    <div class="card-body">
+                        <div class="chart-container"><canvas id="chartSatisfied"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script th:inline="none">
+// ── 전략 색상 매핑 ─────────────────────────────────────────────────────────
+const STRATEGY_COLORS = {
+    'PESSIMISTIC-VIRTUAL':      { color: '#0d6efd', dash: [] },
+    'PESSIMISTIC-PLATFORM':     { color: '#0d6efd', dash: [6, 3] },
+    'OPTIMISTIC-VIRTUAL':       { color: '#198754', dash: [] },
+    'OPTIMISTIC-PLATFORM':      { color: '#198754', dash: [6, 3] },
+    'REDIS_REDISSON-VIRTUAL':   { color: '#dc3545', dash: [] },
+    'REDIS_REDISSON-PLATFORM':  { color: '#dc3545', dash: [6, 3] },
+};
+
+let charts = {};
+let pollInterval = null;
+let currentTab = 'MUSICAL_HEAVY_FRONT';
+let reportData = null;
+
+// ── 부하 테스트 시작 ────────────────────────────────────────────────────────
+async function startLoadTest() {
+    const btn = document.getElementById('runBtn');
+    btn.disabled = true;
+
+    setStatus('RUNNING', '실행 중...');
+    document.getElementById('resultsSection').style.display = 'none';
+    destroyCharts();
+
+    const body = {
+        seatCount:     parseInt(document.getElementById('seatCount').value),
+        startAudience: parseInt(document.getElementById('startAudience').value),
+        endAudience:   parseInt(document.getElementById('endAudience').value),
+        step:          parseInt(document.getElementById('step').value),
+    };
+
+    try {
+        const res = await fetch('/api/load-tests', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const { loadTestId } = await res.json();
+        pollInterval = setInterval(() => pollReport(loadTestId), 3000);
+        pollReport(loadTestId);
+    } catch (e) {
+        setStatus('FAIL', '시작 실패: ' + e.message);
+        btn.disabled = false;
+    }
+}
+
+// ── 폴링 ────────────────────────────────────────────────────────────────────
+async function pollReport(loadTestId) {
+    try {
+        const res = await fetch(`/api/load-tests/${loadTestId}/report`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const doneSteps = data.results.filter(r => r.simulations.every(s => s.status === 'DONE' || s.status === 'FAIL')).length;
+        const totalSteps = data.results.length;
+        document.getElementById('progressText').textContent =
+            totalSteps > 0 ? `(${doneSteps} / ${totalSteps} 단계 완료)` : '';
+
+        if (data.status === 'DONE') {
+            clearInterval(pollInterval);
+            pollInterval = null;
+            setStatus('DONE', '완료');
+            document.getElementById('runBtn').disabled = false;
+            reportData = data;
+            renderCharts(currentTab);
+            document.getElementById('resultsSection').style.display = 'block';
+        } else if (data.status === 'FAIL') {
+            clearInterval(pollInterval);
+            pollInterval = null;
+            setStatus('FAIL', '실패');
+            document.getElementById('runBtn').disabled = false;
+        }
+    } catch (e) {
+        console.error('폴링 오류', e);
+    }
+}
+
+// ── 탭 전환 ─────────────────────────────────────────────────────────────────
+function switchTab(dist, el) {
+    document.querySelectorAll('#distTab .nav-link').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    currentTab = dist;
+    if (reportData) renderCharts(dist);
+}
+
+// ── 차트 렌더링 ──────────────────────────────────────────────────────────────
+function renderCharts(distStrategy) {
+    if (!reportData) return;
+
+    const audienceCounts = reportData.results.map(r => r.audienceCount);
+    const COMBOS = ['PESSIMISTIC-VIRTUAL', 'PESSIMISTIC-PLATFORM', 'OPTIMISTIC-VIRTUAL',
+                    'OPTIMISTIC-PLATFORM', 'REDIS_REDISSON-VIRTUAL', 'REDIS_REDISSON-PLATFORM'];
+
+    function buildDatasets(metricFn) {
+        return COMBOS.map(combo => {
+            const [lock, thread] = combo.split('-');
+            const { color, dash } = STRATEGY_COLORS[combo];
+            const data = reportData.results.map(r => {
+                const sim = r.simulations.find(
+                    s => s.lockStrategy === lock &&
+                         s.threadStrategy === thread &&
+                         s.audienceDistributionStrategy === distStrategy
+                );
+                return sim ? metricFn(sim) : null;
+            });
+            return {
+                label: combo,
+                data,
+                borderColor: color,
+                backgroundColor: color + '22',
+                borderDash: dash,
+                borderWidth: 2,
+                pointRadius: 4,
+                tension: 0.2,
+                fill: false,
+            };
+        });
+    }
+
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: { title: { display: true, text: '관객 수' } },
+            y: { title: { display: true, text: '' }, beginAtZero: true },
+        },
+        plugins: { legend: { position: 'bottom' } },
+    };
+
+    destroyCharts();
+
+    charts.tps = new Chart(document.getElementById('chartTps'), {
+        type: 'line',
+        data: { labels: audienceCounts, datasets: buildDatasets(s => parseFloat(s.totalTps.toFixed(2))) },
+        options: { ...commonOptions, scales: { ...commonOptions.scales, y: { title: { display: true, text: 'TPS' }, beginAtZero: true } } },
+    });
+
+    charts.ms = new Chart(document.getElementById('chartMs'), {
+        type: 'line',
+        data: { labels: audienceCounts, datasets: buildDatasets(s => s.avgResponseMs) },
+        options: { ...commonOptions, scales: { ...commonOptions.scales, y: { title: { display: true, text: 'ms' }, beginAtZero: true } } },
+    });
+
+    charts.dup = new Chart(document.getElementById('chartDuplicate'), {
+        type: 'line',
+        data: { labels: audienceCounts, datasets: buildDatasets(s => s.duplicateHoldCount) },
+        options: { ...commonOptions, scales: { ...commonOptions.scales, y: { title: { display: true, text: '횟수' }, beginAtZero: true } } },
+    });
+
+    charts.sat = new Chart(document.getElementById('chartSatisfied'), {
+        type: 'line',
+        data: { labels: audienceCounts, datasets: buildDatasets(s => s.fullySatisfiedCount) },
+        options: { ...commonOptions, scales: { ...commonOptions.scales, y: { title: { display: true, text: '관객 수' }, beginAtZero: true } } },
+    });
+}
+
+function destroyCharts() {
+    Object.values(charts).forEach(c => c.destroy());
+    charts = {};
+}
+
+// ── 상태 배지 ────────────────────────────────────────────────────────────────
+function setStatus(status, text) {
+    const el = document.getElementById('statusBanner');
+    el.style.display = 'inline-block';
+    el.textContent = text;
+    el.className = 'badge fs-6 ' + ({
+        RUNNING: 'bg-warning text-dark',
+        DONE:    'bg-success',
+        FAIL:    'bg-danger',
+    }[status] || 'bg-secondary');
+}
+</script>
+</div>
+</body>
+</html>
