@@ -25,9 +25,6 @@ public class Audience {
     private Long simulationId;
 
     @Column(nullable = false)
-    private boolean isRealUser;
-
-    @Column(nullable = false)
     private int seatCnt;
 
     @Column(nullable = false)
@@ -54,7 +51,6 @@ public class Audience {
     public Audience(Long simulationId, boolean isRealUser, int seatCnt,
                     Duration seatClickWaitJitter, SeatPreferenceStrategy strategy) {
         this.simulationId = simulationId;
-        this.isRealUser = isRealUser;
         this.seatCnt = seatCnt;
         this.seatClickWaitJitter = seatClickWaitJitter;
         this.strategy = strategy;

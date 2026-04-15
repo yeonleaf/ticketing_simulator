@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/default}">
+<head><title>새 시뮬레이션</title></head>
+<body>
+<div layout:fragment="content">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">새 시뮬레이션 생성</h5>
+                </div>
+                <div class="card-body">
+                    <form id="simForm">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">시뮬레이션 이름</label>
+                            <input type="text" id="name" class="form-control" required placeholder="예) 뮤지컬 락 전략 비교">
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col">
+                                <label class="form-label fw-semibold">행 수 (maxRow)</label>
+                                <input type="number" id="maxRow" class="form-control" min="1" value="10" required>
+                            </div>
+                            <div class="col">
+                                <label class="form-label fw-semibold">열 수 (maxCol)</label>
+                                <input type="number" id="maxCol" class="form-control" min="1" value="20" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="alert alert-info py-2 mb-0">
+                                총 좌석 수: <strong id="totalSeats">200</strong>개
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">관객 수 (audienceCount)</label>
+                            <input type="number" id="audienceCount" class="form-control" min="1" value="300" required>
+                        </div>
+
+                        <hr class="my-3">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">좌석 배치 전략</label>
+                            <select id="seatSettingStrategy" class="form-select" required>
+                                <option value="MUSICAL_STANDARD">MUSICAL_STANDARD – 뮤지컬 기본 (앞줄·중앙 선호)</option>
+                                <option value="CONCERT_FRONT">CONCERT_FRONT – 콘서트 앞줄 집중</option>
+                                <option value="UNIFORM">UNIFORM – 균등 분포</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">관객 분포 전략</label>
+                            <select id="audienceDistributionStrategy" class="form-select" required>
+                                <option value="MUSICAL_HEAVY_FRONT">MUSICAL_HEAVY_FRONT – 앞줄 집중 (뮤지컬)</option>
+                                <option value="CONCERT_RUSH">CONCERT_RUSH – 동시 쏠림 (콘서트)</option>
+                                <option value="BALANCED">BALANCED – 균형 분포</option>
+                                <option value="UNIFORM">UNIFORM – 완전 균등</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">락 전략</label>
+                            <select id="lockStrategy" class="form-select" required>
+                                <option value="PESSIMISTIC">PESSIMISTIC – DB 비관적 락</option>
+                                <option value="OPTIMISTIC">OPTIMISTIC – DB 낙관적 락 (Version)</option>
+                                <option value="REDIS_REDISSON">REDIS_REDISSON – Redis 분산 락</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">스레드 전략</label>
+                            <select id="threadStrategy" class="form-select" required>
+                                <option value="VIRTUAL">VIRTUAL – 가상 스레드 (Java 21)</option>
+                                <option value="PLATFORM">PLATFORM – 플랫폼 스레드 (Fixed Pool)</option>
+                            </select>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary flex-fill">생성</button>
+                            <a href="/simulations" class="btn btn-outline-secondary flex-fill">취소</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script th:inline="none">
+    const maxRowEl = document.getElementById('maxRow');
+    const maxColEl = document.getElementById('maxCol');
+    const totalSeatsEl = document.getElementById('totalSeats');
+
+    function updateTotalSeats() {
+        totalSeatsEl.textContent = (parseInt(maxRowEl.value) || 0) * (parseInt(maxColEl.value) || 0);
+    }
+    maxRowEl.addEventListener('input', updateTotalSeats);
+    maxColEl.addEventListener('input', updateTotalSeats);
+    updateTotalSeats();
+
+    document.getElementById('simForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const params = new URLSearchParams({
+            name: document.getElementById('name').value,
+            maxRow: maxRowEl.value,
+            maxCol: maxColEl.value,
+            audienceCount: document.getElementById('audienceCount').value,
+            seatSettingStrategy: document.getElementById('seatSettingStrategy').value,
+            audienceDistributionStrategy: document.getElementById('audienceDistributionStrategy').value,
+            lockStrategy: document.getElementById('lockStrategy').value,
+            threadStrategy: document.getElementById('threadStrategy').value,
+        });
+        try {
+            const res = await fetch('/api/simulations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params.toString()
+            });
+            if (!res.ok) throw new Error(await res.text());
+            const sim = await res.json();
+            location.href = `/simulations/${sim.id}/run`;
+        } catch (err) {
+            alert('생성 실패: ' + err.message);
+        }
+    });
+</script>
+</div>
+</body>
+</html>

@@ -7,6 +7,5 @@ public enum SeatHoldResult {
     LOCK_CONFLICT,
     SEAT_NOT_FOUND,
     AUDIENCE_NOT_FOUND,
-    SHOW_NOT_FOUND,
     FAIL
 }

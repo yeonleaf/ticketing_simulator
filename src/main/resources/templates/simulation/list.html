@@ -7,7 +7,7 @@
 <div layout:fragment="content">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h4 class="mb-0">시뮬레이션 목록</h4>
-        <a href="/shows" class="btn btn-outline-primary">공연 목록에서 생성</a>
+        <a href="/simulations/new" class="btn btn-primary">+ 새 시뮬레이션</a>
     </div>
 
     <div class="card">
@@ -16,52 +16,48 @@
                 <thead class="table-dark">
                     <tr>
                         <th>ID</th>
-                        <th>Show ID</th>
+                        <th>이름</th>
                         <th>락 전략</th>
-                        <th>관객 분포 전략</th>
+                        <th>관객 분포</th>
+                        <th>스레드</th>
                         <th>상태</th>
-                        <th>시작 시각</th>
-                        <th>종료 시각</th>
-                        <th>액션</th>
+                        <th>시작</th>
+                        <th>종료</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr th:if="${#lists.isEmpty(simulations)}">
-                        <td colspan="8" class="text-center text-muted py-4">등록된 시뮬레이션이 없습니다.</td>
+                        <td colspan="9" class="text-center text-muted py-4">등록된 시뮬레이션이 없습니다.</td>
                     </tr>
-                    <tr th:each="sim : ${simulations}">
+                    <tr th:each="sim : ${simulations}"
+                        th:onclick="|location.href='/simulations/${sim.id}/run'|">
                         <td th:text="${sim.id}"></td>
-                        <td>
-                            <a th:href="|/shows/${sim.showId}|" th:text="${sim.showId}"
-                               class="text-decoration-none"></a>
-                        </td>
+                        <td th:text="${sim.name}"></td>
                         <td>
                             <span th:text="${sim.lockStrategy}"
-                                  th:classappend="${sim.lockStrategy.name() == 'PESSIMISTIC' ? 'bg-primary' :
-                                                   sim.lockStrategy.name() == 'OPTIMISTIC'  ? 'bg-success' :
-                                                                                               'bg-danger'}"
+                                  th:classappend="${sim.lockStrategy.name() == 'PESSIMISTIC'    ? 'bg-primary' :
+                                                   sim.lockStrategy.name() == 'OPTIMISTIC'     ? 'bg-success' :
+                                                                                                  'bg-danger'}"
                                   class="badge"></span>
                         </td>
                         <td th:text="${sim.audienceDistributionStrategy}"></td>
+                        <td th:text="${sim.threadStrategy}"></td>
                         <td>
                             <span th:text="${sim.status}"
                                   th:classappend="${sim.status.name() == 'READY'   ? 'bg-secondary' :
                                                    sim.status.name() == 'RUNNING' ? 'bg-warning text-dark' :
-                                                                                     'bg-success'}"
+                                                   sim.status.name() == 'DONE'    ? 'bg-success' :
+                                                                                     'bg-danger'}"
                                   class="badge"></span>
                         </td>
-                        <td th:text="${sim.startedAt != null ? sim.startedAt : '-'}"></td>
-                        <td th:text="${sim.finishedAt != null ? sim.finishedAt : '-'}"></td>
-                        <td class="d-flex gap-1">
-                            <button th:disabled="${sim.status.name() != 'READY'}"
-                                    th:onclick="|location.href='/simulations/${sim.id}/run'|"
-                                    class="btn btn-sm btn-warning">
-                                실행
-                            </button>
-                            <a th:if="${sim.status.name() == 'DONE' or sim.status.name() == 'FAIL'}"
-                               th:href="|/simulations/${sim.id}/run|"
-                               class="btn btn-sm btn-outline-secondary">
-                                결과 보기
+                        <td th:text="${sim.startedAt != null ? #temporals.format(sim.startedAt, 'MM-dd HH:mm:ss') : '-'}"></td>
+                        <td th:text="${sim.finishedAt != null ? #temporals.format(sim.finishedAt, 'MM-dd HH:mm:ss') : '-'}"></td>
+                        <td>
+                            <a th:href="|/simulations/${sim.id}/run|"
+                               class="btn btn-sm btn-outline-secondary"
+                               onclick="event.stopPropagation()">
+                                상세
                             </a>
                         </td>
                     </tr>
@@ -69,7 +65,6 @@
             </table>
         </div>
     </div>
-
 </div>
 </body>
 </html>

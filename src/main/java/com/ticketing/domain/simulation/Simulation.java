@@ -1,6 +1,7 @@
 package com.ticketing.domain.simulation;
 
 import com.ticketing.domain.audience.AudienceDistributionStrategy;
+import com.ticketing.domain.seat.SeatSettingStrategy;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -18,7 +19,20 @@ public class Simulation {
     private Long id;
 
     @Column(nullable = false)
-    private Long showId;
+    private String name;
+
+    @Column(nullable = false)
+    private int maxRow;
+
+    @Column(nullable = false)
+    private int maxCol;
+
+    @Column(nullable = false)
+    private int audienceCount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private SeatSettingStrategy seatSettingStrategy;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -54,15 +68,33 @@ public class Simulation {
     private int unsatisfiedCount;
 
     @Builder
-    public Simulation(Long showId, LockStrategy lockStrategy,
+    public Simulation(String name, int maxRow, int maxCol, int audienceCount,
+                      SeatSettingStrategy seatSettingStrategy, LockStrategy lockStrategy,
                       ThreadStrategy threadStrategy,
                       AudienceDistributionStrategy audienceDistributionStrategy) {
-        this.showId = showId;
+        this.name = name;
+        this.maxRow = maxRow;
+        this.maxCol = maxCol;
+        this.audienceCount = audienceCount;
+        this.seatSettingStrategy = seatSettingStrategy;
         this.lockStrategy = lockStrategy;
         this.threadStrategy = threadStrategy;
         this.audienceDistributionStrategy = audienceDistributionStrategy;
         this.status = SimStatus.READY;
     }
+
+    public Simulation(SimulationRequest request) {
+        this.name = request.getName();
+        this.maxRow = request.getMaxRow();
+        this.maxCol = request.getMaxCol();
+        this.audienceCount = request.getAudienceCount();
+        this.seatSettingStrategy = request.getSeatSettingStrategy();
+        this.lockStrategy = request.getLockStrategy();
+        this.threadStrategy = request.getThreadStrategy();
+        this.audienceDistributionStrategy = request.getAudienceDistributionStrategy();
+        this.status = SimStatus.READY;
+    }
+
 
     public void start() {
         this.status = SimStatus.RUNNING;

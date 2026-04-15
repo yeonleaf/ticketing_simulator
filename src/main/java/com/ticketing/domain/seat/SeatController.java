@@ -21,8 +21,8 @@ public class SeatController {
      * GET /api/shows/{showId}/seats
      * 해당 공연의 전체 좌석 목록 (상태, 등급, hotScore 포함)
      */
-    @GetMapping("/api/shows/{showId}/simulations/{simulationId}/seats")
-    public ResponseEntity<List<SeatResponse>> getSeatsByShow(@PathVariable Long showId,
+    @GetMapping("/api/simulations/{simulationId}/seats")
+    public ResponseEntity<List<SeatResponse>> getSeatsBySimulationId(
                                                              @PathVariable Long simulationId) {
         Simulation simulation = simulationService.getSimulation(simulationId);
         SeatLockService seatService = switch (simulation.getLockStrategy()) {

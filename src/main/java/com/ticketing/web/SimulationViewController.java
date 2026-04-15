@@ -19,6 +19,11 @@ public class SimulationViewController {
         return "simulation/list";
     }
 
+    @GetMapping("/simulations/new")
+    public String simulationNew() {
+        return "simulation/new";
+    }
+
     @GetMapping("/simulations/{id}/run")
     public String simulationRun(@PathVariable Long id, Model model) {
         model.addAttribute("simulation", simulationService.getSimulation(id));

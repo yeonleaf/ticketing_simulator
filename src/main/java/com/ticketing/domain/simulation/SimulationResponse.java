@@ -1,10 +1,10 @@
 package com.ticketing.domain.simulation;
 
+import com.ticketing.domain.audience.Audience;
 import com.ticketing.domain.audience.AudienceDistributionStrategy;
+import com.ticketing.domain.audience.AudienceResponse;
 import com.ticketing.domain.seat.Seat;
 import com.ticketing.domain.seat.SeatResponse;
-import com.ticketing.domain.seat.SeatSettingStrategy;
-import jakarta.persistence.*;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -15,8 +15,8 @@ import java.util.List;
 public class SimulationResponse {
 
     private Long id;
-    private Long showId;
     private List<SeatResponse> seatResponses = new ArrayList<>();
+    private List<AudienceResponse> audienceResponses = new ArrayList<>();
     private LockStrategy lockStrategy;
     private AudienceDistributionStrategy audienceDistributionStrategy;
     private SimStatus status;
@@ -29,9 +29,8 @@ public class SimulationResponse {
     private int partiallySatisfiedCount;
     private int unsatisfiedCount;
 
-    public SimulationResponse(Simulation simulation, List<Seat> seats) {
+    public SimulationResponse(Simulation simulation, List<Audience> audiences, List<Seat> seats) {
         this.id = simulation.getId();
-        this.showId = simulation.getShowId();
         this.lockStrategy = simulation.getLockStrategy();
         this.audienceDistributionStrategy = simulation.getAudienceDistributionStrategy();
         this.status = simulation.getStatus();
@@ -44,5 +43,6 @@ public class SimulationResponse {
         this.partiallySatisfiedCount = simulation.getPartiallySatisfiedCount();
         this.unsatisfiedCount = simulation.getUnsatisfiedCount();
         seats.forEach(seat -> seatResponses.add(new SeatResponse(seat)));
+        audiences.forEach(audience -> audienceResponses.add(new AudienceResponse(audience)));
     }
 }

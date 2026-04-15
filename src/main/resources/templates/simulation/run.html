@@ -3,42 +3,80 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/default}">
 <head>
-    <title th:text="|시뮬레이션 #${simulation.id} 실행|">실행 화면</title>
+    <title th:text="|시뮬레이션 #${simulation.id}|">실행 화면</title>
     <style>
         .seat-cell {
-            width: 28px;
-            height: 28px;
+            width: 26px;
+            height: 26px;
             border: 1px solid #ccc;
             border-radius: 3px;
             background-color: #fff;
-            cursor: default;
             flex-shrink: 0;
         }
-        .seat-cell.held {
-            background-color: #198754;
-            border-color: #198754;
-        }
-        .seat-cell.vip {
-            box-shadow: 0 0 0 2px #ffc107;
-        }
-        #seatGrid {
-            overflow-x: auto;
-        }
+        .seat-cell.held   { background-color: #198754; border-color: #198754; }
+        .seat-cell.vip    { box-shadow: 0 0 0 2px #ffc107; }
+        #seatGrid { overflow-x: auto; }
     </style>
 </head>
 <body>
 <div layout:fragment="content">
+
+    <!-- 헤더 -->
     <div class="d-flex align-items-center gap-3 mb-4">
-        <a href="/simulations" class="text-decoration-none text-muted">&larr; 시뮬레이션 목록</a>
-        <h4 class="mb-0" th:text="|시뮬레이션 #${simulation.id}|"></h4>
+        <a href="/simulations" class="text-decoration-none text-muted">&larr; 목록</a>
+        <h4 class="mb-0" th:text="${simulation.name}"></h4>
+        <span th:text="${'#' + simulation.id}" class="text-muted"></span>
         <span th:text="${simulation.lockStrategy}"
-              th:classappend="${simulation.lockStrategy.name() == 'PESSIMISTIC' ? 'bg-primary' :
-                               simulation.lockStrategy.name() == 'OPTIMISTIC'  ? 'bg-success' :
-                                                                                   'bg-danger'}"
+              th:classappend="${simulation.lockStrategy.name() == 'PESSIMISTIC'    ? 'bg-primary' :
+                               simulation.lockStrategy.name() == 'OPTIMISTIC'     ? 'bg-success' :
+                                                                                     'bg-danger'}"
               class="badge fs-6"></span>
+        <span class="ms-auto">
+            <button id="btnStart" class="btn btn-warning"
+                    th:disabled="${simulation.status.name() != 'READY'}">
+                시뮬레이션 시작
+            </button>
+        </span>
     </div>
 
-    <!-- Metric Cards -->
+    <!-- 설정 요약 -->
+    <div class="row g-2 mb-4 text-center">
+        <div class="col-6 col-md-3">
+            <div class="card">
+                <div class="card-body py-2">
+                    <div class="text-muted small">좌석</div>
+                    <div class="fw-bold"
+                         th:text="${simulation.maxRow + ' × ' + simulation.maxCol + ' (' + (simulation.maxRow * simulation.maxCol) + '석)'}"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card">
+                <div class="card-body py-2">
+                    <div class="text-muted small">관객 수</div>
+                    <div class="fw-bold" th:text="${simulation.audienceCount + '명'}"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card">
+                <div class="card-body py-2">
+                    <div class="text-muted small">좌석 배치</div>
+                    <div class="fw-bold" th:text="${simulation.seatSettingStrategy}"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card">
+                <div class="card-body py-2">
+                    <div class="text-muted small">스레드</div>
+                    <div class="fw-bold" th:text="${simulation.threadStrategy}"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 결과 지표 -->
     <div class="row g-3 mb-4">
         <div class="col-md-3">
             <div class="card text-center h-100">
@@ -67,19 +105,19 @@
         <div class="col-md-3">
             <div class="card text-center h-100">
                 <div class="card-body">
-                    <div class="text-muted small mb-1">중복 선점 횟수</div>
+                    <div class="text-muted small mb-1">중복 선점</div>
                     <div id="cardDuplicate" class="fs-3 fw-bold">-</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Satisfaction Cards -->
+    <!-- 만족도 지표 -->
     <div class="row g-3 mb-4">
         <div class="col-md-4">
             <div class="card text-center h-100 border-success">
                 <div class="card-body">
-                    <div class="text-muted small mb-1">완전 만족 (Fully Satisfied)</div>
+                    <div class="text-muted small mb-1">완전 만족</div>
                     <div id="cardFullySatisfied" class="fs-3 fw-bold text-success">-</div>
                 </div>
             </div>
@@ -87,7 +125,7 @@
         <div class="col-md-4">
             <div class="card text-center h-100 border-warning">
                 <div class="card-body">
-                    <div class="text-muted small mb-1">부분 만족 (Partially Satisfied)</div>
+                    <div class="text-muted small mb-1">부분 만족</div>
                     <div id="cardPartiallySatisfied" class="fs-3 fw-bold text-warning">-</div>
                 </div>
             </div>
@@ -95,21 +133,24 @@
         <div class="col-md-4">
             <div class="card text-center h-100 border-danger">
                 <div class="card-body">
-                    <div class="text-muted small mb-1">미충족 (Unsatisfied)</div>
+                    <div class="text-muted small mb-1">미충족</div>
                     <div id="cardUnsatisfied" class="fs-3 fw-bold text-danger">-</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Seat Grid -->
+    <!-- 실패 사유 -->
+    <div id="failAlert" class="alert alert-danger d-none mb-4"></div>
+
+    <!-- 좌석 현황 -->
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <span>좌석 현황</span>
             <div class="d-flex gap-3 small">
                 <span><span style="display:inline-block;width:14px;height:14px;background:#fff;border:1px solid #ccc;border-radius:2px;vertical-align:middle"></span> 가능</span>
                 <span><span style="display:inline-block;width:14px;height:14px;background:#198754;border-radius:2px;vertical-align:middle"></span> 선점</span>
-                <span><span style="display:inline-block;width:14px;height:14px;background:#fff;border:2px solid #ffc107;border-radius:2px;vertical-align:middle"></span> VIP</span>
+                <span><span style="display:inline-block;width:14px;height:14px;border:2px solid #ffc107;border-radius:2px;vertical-align:middle"></span> VIP</span>
             </div>
         </div>
         <div class="card-body">
@@ -124,28 +165,31 @@
     let pollInterval = null;
 
     function statusBadge(status) {
-        const map = { READY: 'secondary', RUNNING: 'warning', DONE: 'success' };
-        const cls = map[status] || 'secondary';
-        const textClass = status === 'RUNNING' ? ' text-dark' : '';
-        return `<span class="badge bg-${cls}${textClass}">${status}</span>`;
+        const map = { READY: 'secondary', RUNNING: 'warning text-dark', DONE: 'success', FAIL: 'danger' };
+        return `<span class="badge bg-${map[status] ?? 'secondary'}">${status}</span>`;
     }
 
     function updateCards(sim) {
         document.getElementById('cardStatus').innerHTML = statusBadge(sim.status);
-        const running = sim.status === 'RUNNING';
-        document.getElementById('cardTps').textContent = running ? '-' : (sim.totalTps != null ? sim.totalTps.toFixed(2) : '0.00');
-        document.getElementById('cardAvgMs').textContent = running ? '-' : (sim.avgResponseMs ?? 0);
-        document.getElementById('cardDuplicate').textContent = running ? '-' : (sim.duplicateHoldCount ?? 0);
-        document.getElementById('cardFullySatisfied').textContent = running ? '-' : (sim.fullySatisfiedCount ?? 0);
-        document.getElementById('cardPartiallySatisfied').textContent = running ? '-' : (sim.partiallySatisfiedCount ?? 0);
-        document.getElementById('cardUnsatisfied').textContent = running ? '-' : (sim.unsatisfiedCount ?? 0);
+        const done = sim.status === 'DONE';
+        document.getElementById('cardTps').textContent           = done ? (sim.totalTps?.toFixed(2) ?? '0.00') : '-';
+        document.getElementById('cardAvgMs').textContent         = done ? (sim.avgResponseMs ?? 0) : '-';
+        document.getElementById('cardDuplicate').textContent     = done ? (sim.duplicateHoldCount ?? 0) : '-';
+        document.getElementById('cardFullySatisfied').textContent    = done ? (sim.fullySatisfiedCount ?? 0) : '-';
+        document.getElementById('cardPartiallySatisfied').textContent = done ? (sim.partiallySatisfiedCount ?? 0) : '-';
+        document.getElementById('cardUnsatisfied').textContent   = done ? (sim.unsatisfiedCount ?? 0) : '-';
+
+        const failAlert = document.getElementById('failAlert');
+        if (sim.status === 'FAIL' && sim.failReason) {
+            failAlert.textContent = '실패 사유: ' + sim.failReason;
+            failAlert.classList.remove('d-none');
+        }
     }
 
     function renderSeats(seats) {
         const byRow = {};
         for (const seat of seats) {
-            if (!byRow[seat.row]) byRow[seat.row] = [];
-            byRow[seat.row].push(seat);
+            (byRow[seat.row] ??= []).push(seat);
         }
         const grid = document.getElementById('seatGrid');
         grid.innerHTML = '';
@@ -156,47 +200,60 @@
                 const el = document.createElement('div');
                 el.className = 'seat-cell';
                 if (seat.seatStatus === 'HELD') el.classList.add('held');
-                if (seat.seatGrade === 'VIP') el.classList.add('vip');
-                el.title = `(${seat.row}행 ${seat.col}열) | 인기도: ${seat.hotScore}`;
+                if (seat.seatGrade === 'VIP')   el.classList.add('vip');
+                el.title = `${seat.row}행 ${seat.col}열 | 인기도: ${seat.hotScore?.toFixed(1)}`;
                 el.setAttribute('data-bs-toggle', 'tooltip');
                 rowDiv.appendChild(el);
             }
             grid.appendChild(rowDiv);
         }
-        // Bootstrap tooltips
-        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
-            new bootstrap.Tooltip(el, { placement: 'top' });
-        });
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el =>
+            new bootstrap.Tooltip(el, { placement: 'top' })
+        );
     }
 
     async function fetchData() {
         try {
-            const simRes = await fetch(`/api/simulations/${simId}`);
-            if (!simRes.ok) return;
-            const sim = await simRes.json();
+            const res = await fetch(`/api/simulations/${simId}`);
+            if (!res.ok) return;
+            const sim = await res.json();
             updateCards(sim);
             renderSeats(sim.seatResponses ?? []);
-            if (sim.status === 'DONE' && pollInterval) {
+            if ((sim.status === 'DONE' || sim.status === 'FAIL') && pollInterval) {
                 clearInterval(pollInterval);
                 pollInterval = null;
+                document.getElementById('btnStart').disabled = true;
             }
         } catch (e) {
             console.error('폴링 오류', e);
         }
     }
 
-    // READY 상태면 start API 호출 (fire-and-forget, 응답 기다리지 않음)
-    if (initialStatus === 'READY') {
-        fetch(`/api/simulations/${simId}/start`, { method: 'POST' })
-            .catch(err => console.error('시뮬레이션 시작 실패:', err));
-    }
+    // 시작 버튼
+    document.getElementById('btnStart').addEventListener('click', async () => {
+        const btn = document.getElementById('btnStart');
+        btn.disabled = true;
+        btn.textContent = '실행 중...';
+        try {
+            const res = await fetch(`/api/simulations/${simId}/start`, { method: 'POST' });
+            if (!res.ok) throw new Error(await res.text());
+            // 폴링 시작
+            pollInterval = setInterval(fetchData, 1000);
+            fetchData();
+        } catch (err) {
+            alert('시작 실패: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = '시뮬레이션 시작';
+        }
+    });
 
-    // 초기 데이터 즉시 로드
+    // 초기 로드
     fetchData();
 
-    // DONE이 아니면 폴링 시작 (READY→RUNNING→DONE 전환 감지)
-    if (initialStatus !== 'DONE') {
+    // RUNNING 상태로 페이지 진입 시 폴링 자동 시작
+    if (initialStatus === 'RUNNING') {
         pollInterval = setInterval(fetchData, 1000);
+        document.getElementById('btnStart').textContent = '실행 중...';
     }
 </script>
 </div>

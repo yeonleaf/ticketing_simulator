@@ -32,19 +32,19 @@ public class SimulationStatusService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void updateSimulationStatusFinish(Long simulationId, double totalTps, long avgResponseMs, int duplicateHoldCount, int fullySatisfiedCount, int partiallySatisfiedCount, int unsatisfiedCount) {
+    public Simulation updateSimulationStatusFinish(Long simulationId, double totalTps, long avgResponseMs, int duplicateHoldCount, int fullySatisfiedCount, int partiallySatisfiedCount, int unsatisfiedCount) {
         log.info("[Simulation {}] 종료합니다.", simulationId);
         Simulation simulation = simulationRepository.findById(simulationId).orElse(null);
         if (simulation == null) {
             throw new RuntimeException("잘못된 시뮬레이션 ID입니다.");
         }
         simulation.finish(totalTps, avgResponseMs, duplicateHoldCount, fullySatisfiedCount, partiallySatisfiedCount, unsatisfiedCount);
-        simulationRepository.save(simulation);
+        return simulationRepository.save(simulation);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void updateSimulationStatusFail(Long simulationId, String message) {
-        log.error("[Simulation {}] 실패했습니다.", message);
+        log.error("[Simulation {}] 실패했습니다. reason={}", simulationId, message);
         Simulation simulation = simulationRepository.findById(simulationId).orElse(null);
         if (simulation == null) {
             throw new RuntimeException("잘못된 시뮬레이션 ID입니다.");
