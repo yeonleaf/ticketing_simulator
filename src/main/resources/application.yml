@@ -9,7 +9,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: ${SPRING_JPA_DDL_AUTO:update}
+      ddl-auto: ${SPRING_JPA_DDL_AUTO:create-drop}
     show-sql: false
     properties:
       hibernate:
@@ -26,6 +26,9 @@ server:
   tomcat:
     threads:
       max: 200
+
+k6:
+  base_url: ${K6_BASE_URL:http://localhost:8080}
 
 logging:
   level:

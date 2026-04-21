@@ -16,7 +16,6 @@ const SIM_ID = __ENV.SIM_ID;
 
 export function setup() {
     const headers = { 'Content-Type': 'application/json' };
-    console.log()
     var raw = http.get(`${BASE_URL}/api/simulations/${SIM_ID}`, {headers: headers});
     var simulation = null;
     if (raw.status == 200) {
