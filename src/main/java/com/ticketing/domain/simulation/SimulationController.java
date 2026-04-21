@@ -73,7 +73,7 @@ public class SimulationController {
                 .taskDefinition(k6TaskDefinition)
                 .launchType(LaunchType.FARGATE)
                 .networkConfiguration(n -> n.awsvpcConfiguration(v -> v
-                        .subnets(Arrays.asList(k6Subnet.split(",")))
+                        .subnets(Arrays.asList(subnet.split(",")))
                         .assignPublicIp(AssignPublicIp.ENABLED)))
                 .overrides(o -> o.containerOverrides(c -> c
                         .name("k6")
