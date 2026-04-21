@@ -25,7 +25,7 @@ public class RedisSeatLockService implements SeatLockService {
     public SeatHoldResult hold(Long seatId, Long audienceId) {
         RLock lock = redissonClient.getLock("seat:lock:" + seatId);
         try {
-            boolean acquired = lock.tryLock(5, -1, TimeUnit.SECONDS);
+            boolean acquired = lock.tryLock(5, 30, TimeUnit.SECONDS);
             if (!acquired) return SeatHoldResult.LOCK_TIMEOUT;
 
             try {
