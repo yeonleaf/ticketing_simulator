@@ -39,7 +39,7 @@ public class SimulationController {
     private String cluster;
 
     @Value("${k6.subnet}")
-    private List<String> subnet;
+    private String subnet;
 
     @Value("${k6.task-definition}")
     private String k6TaskDefinition;
