@@ -10,6 +10,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.ecs.EcsClient;
+import software.amazon.awssdk.services.ecs.model.AssignPublicIp;
+import software.amazon.awssdk.services.ecs.model.KeyValuePair;
+import software.amazon.awssdk.services.ecs.model.LaunchType;
+import software.amazon.awssdk.services.ecs.model.RunTaskRequest;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -27,6 +33,15 @@ public class SimulationController {
     private final SimulationService simulationService;
     @Value("${k6.base_url}")
     private String k6_base_url;
+
+    @Value("${k6.cluster}")
+    private String cluster;
+
+    @Value("${k6.subnet}")
+    private String subnet;
+
+    @Value("${k6.task-definition}")
+    private String k6TaskDefinition;
 
     @PostMapping("/api/simulations")
     public ResponseEntity<SimulationResponse> createSimulation(@ModelAttribute SimulationRequest request) {
@@ -50,18 +65,25 @@ public class SimulationController {
     public ResponseEntity<SimulationResponse> startSimulation(@PathVariable("id") Long simulationId) throws IOException {
         Simulation simulation = simulationService.getSimulation(simulationId);
 
-        ClassPathResource scriptResource = new ClassPathResource("scripts/script.js");
-        Path tempScript = Files.createTempFile("k6-script", ".js");
-        Files.copy(scriptResource.getInputStream(), tempScript, StandardCopyOption.REPLACE_EXISTING);
-        ProcessBuilder pb = new ProcessBuilder(
-                "k6", "run",
-                "--env", "SIM_ID=" + simulationId,
-                "--env", "BASE_URL=" + k6_base_url,
-                "--env", "TOT_VUS=" + simulation.getAudienceCount(),
-                tempScript.toAbsolutePath().toString()
-        );
-        pb.inheritIO();
-        pb.start();
+        EcsClient ecs = EcsClient.builder().region(Region.AP_SOUTHEAST_2).build();
+
+        RunTaskRequest request = RunTaskRequest.builder()
+                .cluster(cluster)
+                .taskDefinition(k6TaskDefinition)
+                .launchType(LaunchType.FARGATE)
+                .networkConfiguration(n -> n.awsvpcConfiguration(v -> v
+                        .subnets(subnet)
+                        .assignPublicIp(AssignPublicIp.ENABLED)))
+                .overrides(o -> o.containerOverrides(c -> c
+                        .name("k6")
+                        .environment(
+                                KeyValuePair.builder().name("SIM_ID").value(String.valueOf(simulationId)).build(),
+                                KeyValuePair.builder().name("BASE_URL").value(k6_base_url).build(),
+                                KeyValuePair.builder().name("TOT_VUS").value(String.valueOf(simulation.getAudienceCount())).build()
+                        )))
+                .build();
+        ecs.runTask(request);
+
         return ResponseEntity.ok(simulationService.startSimulation(simulationId));
     }
 

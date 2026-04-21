@@ -28,7 +28,10 @@ server:
       max: 200
 
 k6:
-  base_url: ${K6_BASE_URL:http://localhost:8080}
+  base_url: ${K6_BASE_URL}
+  cluster: ${K6_CLUSTER}
+  subnet: ${K6_SUBNET}
+  task-definition: ${K6_TASK_DEFINITION}
 
 logging:
   level:
