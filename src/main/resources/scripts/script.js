@@ -29,7 +29,7 @@ export default function(data) {
     // 1차: 선호 좌석 시도
     const audience = data.simulation.audienceResponses[__VU - 1];
     const headers = { 'Content-Type': 'application/json' };
-    held = true;
+    let held = false;
     for (const seatId of audience.preferredSeatIds) {
         sleep(audience.seatClickWaitJitter / 1000);  // ms → seconds
         const raw = http.post(`${BASE_URL}/api/seats/${seatId}/hold`, JSON.stringify({
@@ -49,7 +49,8 @@ export default function(data) {
     }
 
     // 2차: 실패 시 가용 좌석에서 재시도
-    const MAX_RETRY = 3;
+    const MAX_RETRY = 10;
+    let retry = 0;
     while (!held && retry < MAX_RETRY) {
         const available = http.get(
             `${BASE_URL}/api/simulations/${SIM_ID}/seats/available`,
