@@ -52,6 +52,8 @@ export default function(data) {
     const MAX_RETRY = 10;
     let retry = 0;
     while (!held && retry < MAX_RETRY) {
+        sleep(Math.random()*2)
+
         const available = http.get(
             `${BASE_URL}/api/simulations/${SIM_ID}/seats/available`,
             { headers }

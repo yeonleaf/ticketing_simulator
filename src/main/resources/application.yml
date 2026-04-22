@@ -7,6 +7,8 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:ticketing}
     password: ${SPRING_DATASOURCE_PASSWORD:ticketing}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 30
   jpa:
     hibernate:
       ddl-auto: ${SPRING_JPA_DDL_AUTO:create-drop}
