@@ -1,7 +1,7 @@
 spring:
   threads:
     virtual:
-      enabled: true
+      enabled: ${VIRTUAL_ENABLED:false}
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/ticketing?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=UTF-8}
     username: ${SPRING_DATASOURCE_USERNAME:ticketing}
@@ -28,10 +28,10 @@ server:
       max: 200
 
 k6:
-  base_url: ${K6_BASE_URL}
-  cluster: ${K6_CLUSTER}
-  subnet: ${K6_SUBNET}
-  task-definition: ${K6_TASK_DEFINITION}
+  base_url: ${K6_BASE_URL:http://localhost:8080}
+  cluster: ${K6_CLUSTER:cluster}
+  subnet: ${K6_SUBNET:subnet}
+  task-definition: ${K6_TASK_DEFINITION:k6}
 
 logging:
   level:

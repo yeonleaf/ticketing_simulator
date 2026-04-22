@@ -24,8 +24,6 @@ public class SimulationRequest {
 
     private LockStrategy lockStrategy;
 
-    private ThreadStrategy threadStrategy;
-
     private AudienceDistributionStrategy audienceDistributionStrategy;
 
 }

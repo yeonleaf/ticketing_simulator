@@ -71,14 +71,6 @@
                             </select>
                         </div>
 
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">스레드 전략</label>
-                            <select id="threadStrategy" class="form-select" required>
-                                <option value="VIRTUAL">VIRTUAL – 가상 스레드 (Java 21)</option>
-                                <option value="PLATFORM">PLATFORM – 플랫폼 스레드 (Fixed Pool)</option>
-                            </select>
-                        </div>
-
                         <div class="d-flex gap-2">
                             <button type="submit" class="btn btn-primary flex-fill">생성</button>
                             <a href="/simulations" class="btn btn-outline-secondary flex-fill">취소</a>
@@ -111,7 +103,6 @@
             seatSettingStrategy: document.getElementById('seatSettingStrategy').value,
             audienceDistributionStrategy: document.getElementById('audienceDistributionStrategy').value,
             lockStrategy: document.getElementById('lockStrategy').value,
-            threadStrategy: document.getElementById('threadStrategy').value,
         });
         try {
             const res = await fetch('/api/simulations', {

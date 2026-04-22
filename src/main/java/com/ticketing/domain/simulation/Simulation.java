@@ -40,10 +40,6 @@ public class Simulation {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ThreadStrategy threadStrategy;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private AudienceDistributionStrategy audienceDistributionStrategy;
 
     @Enumerated(EnumType.STRING)
@@ -70,7 +66,6 @@ public class Simulation {
     @Builder
     public Simulation(String name, int maxRow, int maxCol, int audienceCount,
                       SeatSettingStrategy seatSettingStrategy, LockStrategy lockStrategy,
-                      ThreadStrategy threadStrategy,
                       AudienceDistributionStrategy audienceDistributionStrategy) {
         this.name = name;
         this.maxRow = maxRow;
@@ -78,7 +73,6 @@ public class Simulation {
         this.audienceCount = audienceCount;
         this.seatSettingStrategy = seatSettingStrategy;
         this.lockStrategy = lockStrategy;
-        this.threadStrategy = threadStrategy;
         this.audienceDistributionStrategy = audienceDistributionStrategy;
         this.status = SimStatus.READY;
     }
@@ -90,7 +84,6 @@ public class Simulation {
         this.audienceCount = request.getAudienceCount();
         this.seatSettingStrategy = request.getSeatSettingStrategy();
         this.lockStrategy = request.getLockStrategy();
-        this.threadStrategy = request.getThreadStrategy();
         this.audienceDistributionStrategy = request.getAudienceDistributionStrategy();
         this.status = SimStatus.READY;
     }
