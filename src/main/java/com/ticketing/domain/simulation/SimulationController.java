@@ -1,5 +1,8 @@
 package com.ticketing.domain.simulation;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ticketing.domain.audience.Audience;
 import com.ticketing.domain.audience.AudienceRepository;
 import com.ticketing.domain.audience.AudienceResponse;
@@ -7,8 +10,10 @@ import com.ticketing.domain.seat.Seat;
 import com.ticketing.domain.seat.SeatRepository;
 import com.ticketing.domain.seat.SeatResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import software.amazon.awssdk.regions.Region;
@@ -22,6 +27,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Arrays;
@@ -44,6 +50,10 @@ public class SimulationController {
 
     @Value("${k6.task-definition}")
     private String k6TaskDefinition;
+
+    private final RedisTemplate<String, String> redisTemplate;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @PostMapping("/api/simulations")
     public ResponseEntity<SimulationResponse> createSimulation(@ModelAttribute SimulationRequest request) {
@@ -107,8 +117,29 @@ public class SimulationController {
 
     @GetMapping("/api/simulations/{id}/seats/available")
     public ResponseEntity<List<SeatResponse>> getSeatsAvailable(@PathVariable Long id) {
-        return ResponseEntity.ok(simulationService.findEmptySeatsBySimulationId(id));
+        String key = "seats:available:" + id;
+        String cached = redisTemplate.opsForValue().get(key);
+        if (cached != null) {
+            return ResponseEntity.ok(deserialize(cached));
+        }
+        List<SeatResponse> seats = simulationService.findEmptySeatsBySimulationId(id);
+        redisTemplate.opsForValue().set(key, serialize(seats), Duration.ofSeconds(2));
+        return ResponseEntity.ok(seats);
+    }
+    private String serialize(List<SeatResponse> seats) {
+        try {
+            return objectMapper.writeValueAsString(seats);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("직렬화 실패", e);
+        }
     }
 
+    private List<SeatResponse> deserialize(String json) {
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<SeatResponse>>() {});
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("역직렬화 실패", e);
+        }
+    }
 
 }

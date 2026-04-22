@@ -1,4 +1,4 @@
-.gradle
-build
-.claude
-.idea
+.gradle/*
+build/*
+.claude/*
+.idea/*
