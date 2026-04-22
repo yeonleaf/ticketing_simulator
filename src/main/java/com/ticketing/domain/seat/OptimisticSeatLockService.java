@@ -1,11 +1,15 @@
 package com.ticketing.domain.seat;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ticketing.domain.audience.Audience;
 import com.ticketing.domain.audience.AudienceRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -14,6 +18,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +30,8 @@ public class OptimisticSeatLockService implements SeatLockService {
     private final PlatformTransactionManager txManager;
 
     private TransactionTemplate transactionTemplate;
+    private final RedisTemplate<String, String> redisTemplate;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @PostConstruct
     void init() {
@@ -51,6 +58,23 @@ public class OptimisticSeatLockService implements SeatLockService {
 
                 audience.addAcquiredSeat(seatId);
                 audienceRepository.save(audience);
+
+                // 캐시에서 hold된 좌석 제거
+                String key = "seats:available:" + seat.getSimulationId();
+                String cached = redisTemplate.opsForValue().get(key);
+                if (cached != null) {
+                    try {
+                        List<SeatResponse> availableSeats = objectMapper.readValue(cached, new TypeReference<List<SeatResponse>>() {});
+                        List<SeatResponse> updatedSeats = availableSeats.stream()
+                                .filter(s -> !s.getId().equals(seatId))
+                                .collect(Collectors.toList());
+                        redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(updatedSeats));
+                    } catch (JsonProcessingException e) {
+                        log.warn("캐시 업데이트 실패 (seatId={})", seatId, e);
+                        // 캐시 업데이트 실패 시 캐시 삭제
+                        redisTemplate.delete(key);
+                    }
+                }
 
                 return SeatHoldResult.SUCCESS;
             });
