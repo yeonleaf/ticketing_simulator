@@ -25,8 +25,11 @@ export function setup() {
 }
 
 export default function(data) {
+
+    // 1차: 선호 좌석 시도
     const audience = data.simulation.audienceResponses[__VU - 1];
     const headers = { 'Content-Type': 'application/json' };
+    held = true;
     for (const seatId of audience.preferredSeatIds) {
         sleep(audience.seatClickWaitJitter / 1000);  // ms → seconds
         const raw = http.post(`${BASE_URL}/api/seats/${seatId}/hold`, JSON.stringify({
@@ -40,6 +43,39 @@ export default function(data) {
         check(res, {
             'crash': (r) => r == "\"ALREADY_HELD\""
         })
+        if (res == "\"SUCCESS\"") {
+            held = true;
+        }
+    }
+
+    // 2차: 실패 시 가용 좌석에서 재시도
+    const MAX_RETRY = 3;
+    while (!held && retry < MAX_RETRY) {
+        const available = http.get(
+            `${BASE_URL}/api/simulations/${SIM_ID}/seats/available`,
+            { headers }
+        );
+        const seats = JSON.parse(available.body);
+        if (seats.length === 0) break;
+
+        const randomSeat = seats[Math.floor(Math.random() * seats.length)];
+        const raw = http.post(`${BASE_URL}/api/seats/${randomSeat.id}/hold`, JSON.stringify({
+            simulationId: SIM_ID,
+            audienceId: audience.id,
+        }), { headers });
+
+        const res = raw.body;
+        check(res, {
+            'hold': (r) => r == "\"SUCCESS\""
+        });
+        check(res, {
+            'crash': (r) => r == "\"ALREADY_HELD\""
+        });
+
+        if (res == "\"SUCCESS\"") {
+            held = true;
+        }
+        retry++;
     }
 }
 

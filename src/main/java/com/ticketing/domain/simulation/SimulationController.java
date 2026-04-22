@@ -5,6 +5,7 @@ import com.ticketing.domain.audience.AudienceRepository;
 import com.ticketing.domain.audience.AudienceResponse;
 import com.ticketing.domain.seat.Seat;
 import com.ticketing.domain.seat.SeatRepository;
+import com.ticketing.domain.seat.SeatResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
@@ -103,4 +104,11 @@ public class SimulationController {
     }
 
     public record FinishRequest(int duplicateHoldCount, Long totalTps, Long avgResponseMs) {}
+
+    @GetMapping("/api/simulations/{id}/seats/available")
+    public ResponseEntity<List<SeatResponse>> getSeatsAvailable(@PathVariable Long id) {
+        return ResponseEntity.ok(simulationService.findEmptySeatsBySimulationId(id));
+    }
+
+
 }

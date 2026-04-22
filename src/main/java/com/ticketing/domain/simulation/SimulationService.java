@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -109,4 +110,7 @@ public class SimulationService {
 
     record RequestResult(SeatHoldResult holdResult, long responseMs) {}
 
-}
+    public List<SeatResponse> findEmptySeatsBySimulationId(Long simulationId) {
+        return seatRepository.findEmptySeatsBySimulationId(simulationId).stream().map(SeatResponse::new).collect(Collectors.toList());
+    }
+ }
