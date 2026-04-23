@@ -142,4 +142,11 @@ public class SimulationController {
         }
     }
 
+    @PostMapping("/api/simulations/{id}/fail")
+    public ResponseEntity<Void> failSimulation(@PathVariable Long id, @RequestBody FailRequest request) {
+        simulationService.failSimulation(id, request);
+        return ResponseEntity.ok().build();
+    }
+
+    public record FailRequest(String message) {}
 }

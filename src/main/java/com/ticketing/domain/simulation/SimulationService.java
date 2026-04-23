@@ -108,6 +108,10 @@ public class SimulationService {
 
     }
 
+    public void  failSimulation(Long simulationId, SimulationController.FailRequest request) {
+        simulationStatusService.updateSimulationStatusFail(simulationId, request.message());
+    }
+
     record RequestResult(SeatHoldResult holdResult, long responseMs) {}
 
     public List<SeatResponse> findEmptySeatsBySimulationId(Long simulationId) {

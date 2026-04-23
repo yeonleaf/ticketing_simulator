@@ -1,5 +1,6 @@
 import http from 'k6/http';
 import { sleep, check } from 'k6';
+import { Counter } from 'k6/metrics';
 
 export const options = {
   scenarios: {
@@ -13,6 +14,7 @@ export const options = {
 
 const BASE_URL = __ENV.BASE_URL;
 const SIM_ID = __ENV.SIM_ID;
+const duplicateHoldCounter = new Counter('duplicate_holds');
 
 export function setup() {
     const headers = { 'Content-Type': 'application/json' };
@@ -38,13 +40,22 @@ export default function(data) {
                 }), { headers: headers })
         const res = raw.body
         check(res, {
-            'hold': (r) => r == "\"SUCCESS\""
+            'valid_response': (b) =>
+                b === '"SUCCESS"' || b === '"ALREADY_HELD"',
         });
+
         check(res, {
-            'crash': (r) => r == "\"ALREADY_HELD\""
-        })
+            'infra_error': (b) =>
+                b !== '"SUCCESS"' &&
+                b !== '"ALREADY_HELD"' &&
+                b !== '"LOCK_TIMEOUT"' &&
+                b !== '"LOCK_CONFLICT"',
+        });
         if (res == "\"SUCCESS\"") {
             held = true;
+        }
+        if (res === '"ALREADY_HELD"') {
+            duplicateHoldCounter.add(1);
         }
     }
 
@@ -69,14 +80,23 @@ export default function(data) {
 
         const res = raw.body;
         check(res, {
-            'hold': (r) => r == "\"SUCCESS\""
+            'valid_response': (b) =>
+                b === '"SUCCESS"' || b === '"ALREADY_HELD"',
         });
+
         check(res, {
-            'crash': (r) => r == "\"ALREADY_HELD\""
+            'infra_error': (b) =>
+                b !== '"SUCCESS"' &&
+                b !== '"ALREADY_HELD"' &&
+                b !== '"LOCK_TIMEOUT"' &&
+                b !== '"LOCK_CONFLICT"',
         });
 
         if (res == "\"SUCCESS\"") {
             held = true;
+        }
+        if (res === '"ALREADY_HELD"') {
+            duplicateHoldCounter.add(1);
         }
         retry++;
     }
@@ -84,17 +104,29 @@ export default function(data) {
 
 export function handleSummary(data) {
     const headers = { 'Content-Type': 'application/json' };
-    const totalTps = Math.floor(data.metrics.http_reqs.values.rate); // http_reqs의 초당 처리량
-    const avgResponseMs = Math.round(data.metrics.http_req_duration.values.avg); // 평균 응답 시간
+    const totalTps = Math.floor(data.metrics.http_reqs.values.rate);
+    const avgResponseMs = Math.round(data.metrics.http_req_duration.values.avg);
 
+    const duplicateHoldCount = data.metrics.duplicate_holds
+        ? data.metrics.duplicate_holds.values.count
+        : 0;
+
+    // infra_error check 비율로 실패 판단
     const checks = data.root_group.checks;
-    const crashCheck = checks.find(c => c.name === 'crash');
-    const duplicateHoldCount = crashCheck ? crashCheck.passes : 0;
+    const infraCheck = checks.find(c => c.name === 'infra_error');
+    const hasInfraFailure = infraCheck && infraCheck.passes > 0;
 
-    const raw = http.post(`${BASE_URL}/api/simulations/${SIM_ID}/finish`, JSON.stringify({
-            duplicateHoldCount: duplicateHoldCount,
-            totalTps: totalTps,
-            avgResponseMs: avgResponseMs
-        }), {headers : headers});
-    console.log(raw.body)
+    if (hasInfraFailure) {
+        http.patch(`${BASE_URL}/api/simulations/${SIM_ID}/fail`,
+            JSON.stringify({
+                message: `infra_error detected: ${infraPasses} errors out of ${infraPasses + infraFails} requests (${(errorRate * 100).toFixed(1)}%)`
+            }), { headers });
+    } else {
+        http.post(`${BASE_URL}/api/simulations/${SIM_ID}/finish`,
+            JSON.stringify({
+                duplicateHoldCount,
+                totalTps,
+                avgResponseMs
+            }), { headers });
+    }
 }
