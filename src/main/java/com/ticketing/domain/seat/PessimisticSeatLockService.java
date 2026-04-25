@@ -31,12 +31,17 @@ public class PessimisticSeatLockService implements SeatLockService {
     @Override
     public SeatHoldResult hold(Long seatId, Long audienceId) {
         try {
-            return internalService.doHold(seatId, audienceId);
+            SeatHoldResult result = internalService.doHold(seatId, audienceId);
+            log.info("hold 결과: seatId={}, audienceId={}, result={}", seatId, audienceId, result);
+            return result;
         } catch (PessimisticLockingFailureException e) {
+            log.warn("락 타임아웃: seatId={}, audienceId={}", seatId, audienceId);
             return SeatHoldResult.LOCK_TIMEOUT;
+        } catch (Exception e) {
+            log.error("hold 실패: seatId={}, audienceId={}", seatId, audienceId, e);
+            return SeatHoldResult.FAIL;
         }
     }
-
     @Override
     public List<SeatResponse> getAllSeatsBySimulationId(Long simulationId) {
         List<SeatResponse> seatResponses = new ArrayList<>();
