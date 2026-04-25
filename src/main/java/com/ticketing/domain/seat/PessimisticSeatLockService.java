@@ -27,7 +27,7 @@ public class PessimisticSeatLockService implements SeatLockService {
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = PessimisticLockingFailureException.class)
+    @Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = Exception.class)
     @Override
     public SeatHoldResult hold(Long seatId, Long audienceId) {
         // 1. audience 유효성 검사
