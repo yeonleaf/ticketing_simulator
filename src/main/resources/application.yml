@@ -1,7 +1,7 @@
 spring:
   threads:
     virtual:
-      enabled: ${VIRTUAL_ENABLED:false}
+      enabled: true
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/ticketing?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=UTF-8}
     username: ${SPRING_DATASOURCE_USERNAME:ticketing}

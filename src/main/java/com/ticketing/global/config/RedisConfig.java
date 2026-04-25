@@ -6,7 +6,10 @@ import org.redisson.config.Config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.RedisClusterConfiguration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.RedisNode;
+import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
@@ -27,16 +30,21 @@ public class RedisConfig {
     public RedissonClient redissonClient() {
         Config config = new Config();
         String protocol = sslEnabled ? "rediss://" : "redis://";
-        config.useSingleServer()
-                .setAddress(protocol + redisHost + ":" + redisPort)
-                .setConnectionMinimumIdleSize(5)
-                .setConnectionPoolSize(10);
+        config.useClusterServers()
+                .addNodeAddress(protocol + redisHost + ":" + redisPort);
         return Redisson.create(config);
     }
 
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
-        return new LettuceConnectionFactory(redisHost, redisPort);
+        RedisClusterConfiguration clusterConfig = new RedisClusterConfiguration();
+        clusterConfig.addClusterNode(new RedisNode(redisHost, redisPort));
+
+        LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
+                .useSsl()
+                .build();
+
+        return new LettuceConnectionFactory(clusterConfig, clientConfig);
     }
 
     @Bean

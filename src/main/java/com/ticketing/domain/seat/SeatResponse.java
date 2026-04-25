@@ -1,17 +1,20 @@
 package com.ticketing.domain.seat;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
+@NoArgsConstructor
 @Getter
 public class SeatResponse {
-    private final Long id;
-    private final Long simulationId;
-    private final int row;
-    private final int col;
-    private final SeatStatus seatStatus;
-    private final SeatGrade seatGrade;
-    private final int hotScore;
-    private final Long holderId;
+    private Long id;
+    private Long simulationId;
+    private int row;
+    private int col;
+    private SeatStatus seatStatus;
+    private SeatGrade seatGrade;
+    private int hotScore;
+    private Long holderId;
 
     public SeatResponse(Seat seat) {
         this.id = seat.getId();

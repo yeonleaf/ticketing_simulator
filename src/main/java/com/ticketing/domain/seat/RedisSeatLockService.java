@@ -20,7 +20,6 @@ public class RedisSeatLockService implements SeatLockService {
     private final RedissonClient redissonClient;
     private final RedisSeatLockInternalService internalService;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Override
     public SeatHoldResult hold(Long seatId, Long audienceId) {
         RLock lock = redissonClient.getLock("seat:lock:" + seatId);
