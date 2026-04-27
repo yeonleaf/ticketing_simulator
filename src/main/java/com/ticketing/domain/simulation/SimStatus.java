@@ -4,5 +4,6 @@ public enum SimStatus {
     READY,
     RUNNING,
     DONE,
-    FAIL
+    FAIL,
+    INTERRUPTED
 }
