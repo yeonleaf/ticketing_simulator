@@ -110,4 +110,9 @@ public class Simulation {
         this.finishedAt = Instant.now();
         this.failReason = failReason;
     }
+
+    public void interrupt() {
+        this.status = SimStatus.INTERRUPTED;
+        this.finishedAt = Instant.now();
+    }
 }

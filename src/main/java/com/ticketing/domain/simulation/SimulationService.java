@@ -114,6 +114,16 @@ public class SimulationService {
 
     record RequestResult(SeatHoldResult holdResult, long responseMs) {}
 
+    public SimulationResponse interruptSimulation(Long simulationId) {
+        Simulation simulation = simulationRepository.findById(simulationId)
+                .orElseThrow(() -> new IllegalArgumentException("Simulation not found: " + simulationId));
+        simulation.interrupt();
+        simulationRepository.save(simulation);
+        List<Audience> audiences = audienceRepository.findAllBySimulationId(simulationId);
+        List<Seat> seats = seatRepository.findAllBySimulationId(simulationId);
+        return new SimulationResponse(simulation, audiences, seats);
+    }
+
     public List<SeatResponse> findEmptySeatsBySimulationId(Long simulationId) {
         return seatRepository.findEmptySeatsBySimulationId(simulationId).stream().map(SeatResponse::new).collect(Collectors.toList());
     }
