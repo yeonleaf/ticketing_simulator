@@ -112,6 +112,13 @@ public class SimulationService {
         simulationStatusService.updateSimulationStatusFail(simulationId, request.message());
     }
 
+    public void interruptSimulation(Long simulationId) {
+        Simulation simulation = simulationRepository.findById(simulationId)
+                .orElseThrow(() -> new IllegalArgumentException("Simulation not found: " + simulationId));
+        simulation.interrupt();
+        simulationRepository.save(simulation);
+    }
+
     record RequestResult(SeatHoldResult holdResult, long responseMs) {}
 
     public List<SeatResponse> findEmptySeatsBySimulationId(Long simulationId) {

@@ -148,5 +148,11 @@ public class SimulationController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/api/simulations/{id}/interrupt")
+    public ResponseEntity<Void> interruptSimulation(@PathVariable Long id) {
+        simulationService.interruptSimulation(id);
+        return ResponseEntity.ok().build();
+    }
+
     public record FailRequest(String message) {}
 }

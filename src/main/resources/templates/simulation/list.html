@@ -57,6 +57,11 @@
                                onclick="event.stopPropagation()">
                                 상세
                             </a>
+                            <button th:if="${sim.status.name() == 'RUNNING'}"
+                                    class="btn btn-sm btn-outline-danger ms-1"
+                                    onclick="event.stopPropagation(); interruptSimulation([[${sim.id}]])">
+                                중지
+                            </button>
                         </td>
                     </tr>
                 </tbody>
@@ -64,5 +69,14 @@
         </div>
     </div>
 </div>
+
+<script>
+function interruptSimulation(id) {
+    if (!confirm('시뮬레이션을 중지하시겠습니까?')) return;
+    fetch('/api/simulations/' + id + '/interrupt', { method: 'POST' })
+        .then(() => location.reload())
+        .catch(err => alert('중지 요청 실패: ' + err));
+}
+</script>
 </body>
 </html>
