@@ -43,7 +43,7 @@ public class Simulation {
     private AudienceDistributionStrategy audienceDistributionStrategy;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private SimStatus status;
 
     private Instant startedAt;
