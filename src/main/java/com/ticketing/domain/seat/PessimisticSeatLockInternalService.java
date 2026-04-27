@@ -27,12 +27,12 @@ public class PessimisticSeatLockInternalService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public SeatHoldResult doHold(Long seatId, Long audienceId) {
+    public SeatHoldResultWrapper doHold(Long seatId, Long audienceId) {
         // 1. audience 유효성 검사
         Audience audience = audienceRepository.findById(audienceId)
                 .orElse(null);
         if (audience == null) {
-            return SeatHoldResult.AUDIENCE_NOT_FOUND;
+            return new SeatHoldResultWrapper(SeatHoldResult.AUDIENCE_NOT_FOUND, null);
         }
 
         // 2. 좌석 락 획득
@@ -40,10 +40,10 @@ public class PessimisticSeatLockInternalService {
                 .orElse(null);
 
         if (seat == null) {
-            return SeatHoldResult.SEAT_NOT_FOUND;
+            return new SeatHoldResultWrapper(SeatHoldResult.SEAT_NOT_FOUND, null);
         }
         if (!seat.isAvailable()) {
-            return SeatHoldResult.ALREADY_HELD;
+            return new SeatHoldResultWrapper(SeatHoldResult.ALREADY_HELD, seat.getSimulationId());
         }
 
         // 3. 좌석 선점
@@ -54,22 +54,6 @@ public class PessimisticSeatLockInternalService {
         audience.addAcquiredSeat(seatId);
         audienceRepository.save(audience);
 
-        // 5. 캐시에서 hold된 좌석 제거
-        String key = "seats:available:" + seat.getSimulationId();
-        String cached = redisTemplate.opsForValue().get(key);
-        if (cached != null) {
-            try {
-                List<SeatResponse> availableSeats = objectMapper.readValue(cached, new TypeReference<List<SeatResponse>>() {});
-                List<SeatResponse> updatedSeats = availableSeats.stream()
-                        .filter(s -> !s.getId().equals(seatId))
-                        .collect(Collectors.toList());
-                redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(updatedSeats));
-            } catch (JsonProcessingException e) {
-                log.warn("캐시 업데이트 실패 (seatId={})", seatId, e);
-                // 캐시 업데이트 실패 시 캐시 삭제
-                redisTemplate.delete(key);
-            }
-        }
-        return SeatHoldResult.SUCCESS;
+        return new SeatHoldResultWrapper(SeatHoldResult.SUCCESS, seat.getSimulationId());
     }
 }

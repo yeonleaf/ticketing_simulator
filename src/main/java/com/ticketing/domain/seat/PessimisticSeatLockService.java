@@ -31,9 +31,28 @@ public class PessimisticSeatLockService implements SeatLockService {
     @Override
     public SeatHoldResult hold(Long seatId, Long audienceId) {
         try {
-            SeatHoldResult result = internalService.doHold(seatId, audienceId);
-            log.info("hold 결과: seatId={}, audienceId={}, result={}", seatId, audienceId, result);
-            return result;
+            SeatHoldResultWrapper resultWrapper = internalService.doHold(seatId, audienceId);
+
+            // 5. 캐시에서 hold된 좌석 제거
+            String key = "seats:available:" + resultWrapper.getSimulationId();
+            String cached = redisTemplate.opsForValue().get(key);
+            if (cached != null) {
+                try {
+                    List<SeatResponse> availableSeats = objectMapper.readValue(cached, new TypeReference<List<SeatResponse>>() {});
+                    List<SeatResponse> updatedSeats = availableSeats.stream()
+                            .filter(s -> !s.getId().equals(seatId))
+                            .collect(Collectors.toList());
+                    redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(updatedSeats));
+                } catch (JsonProcessingException e) {
+                    log.warn("캐시 업데이트 실패 (seatId={})", seatId, e);
+                    // 캐시 업데이트 실패 시 캐시 삭제
+                    redisTemplate.delete(key);
+                }
+            }
+
+            log.info("hold 결과: seatId={}, audienceId={}, result={}", seatId, audienceId, resultWrapper.getSeatHoldResult());
+
+            return resultWrapper.getSeatHoldResult();
         } catch (PessimisticLockingFailureException e) {
             log.warn("락 타임아웃: seatId={}, audienceId={}", seatId, audienceId);
             return SeatHoldResult.LOCK_TIMEOUT;
