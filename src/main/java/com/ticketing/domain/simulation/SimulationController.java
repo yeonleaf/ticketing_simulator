@@ -99,11 +99,6 @@ public class SimulationController {
         return ResponseEntity.ok(simulationService.startSimulation(simulationId));
     }
 
-    @PostMapping("/api/simulations/{id}/interrupt")
-    public ResponseEntity<SimulationResponse> interruptSimulation(@PathVariable("id") Long simulationId) {
-        return ResponseEntity.ok(simulationService.interruptSimulation(simulationId));
-    }
-
     @PostMapping("/api/simulations/{id}/finish")
     public ResponseEntity<SimulationResponse> finishSimulation(@PathVariable("id") Long simulationId, @RequestBody FinishRequest request) {
         return ResponseEntity.ok(simulationService.finishSimulation(simulationId, request));
