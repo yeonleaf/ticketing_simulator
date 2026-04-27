@@ -9,6 +9,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
@@ -78,7 +79,7 @@ public class OptimisticSeatLockService implements SeatLockService {
 
                 return SeatHoldResult.SUCCESS;
             });
-        } catch (ObjectOptimisticLockingFailureException e) {
+        } catch (ObjectOptimisticLockingFailureException | PessimisticLockingFailureException op) {
             return SeatHoldResult.LOCK_CONFLICT;
         } catch (Exception e) {
             log.error("좌석 선점 중 예상치 못한 에러 발생 (seatId={})", seatId, e);
