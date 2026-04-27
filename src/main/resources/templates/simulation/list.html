@@ -59,7 +59,7 @@
                             </a>
                             <button th:if="${sim.status.name() == 'RUNNING'}"
                                     class="btn btn-sm btn-outline-danger ms-1"
-                                    onclick="event.stopPropagation(); interruptSimulation([[${sim.id}]])">
+                                    th:onclick="|event.stopPropagation(); interruptSimulation(${sim.id})|">
                                 중지
                             </button>
                         </td>
