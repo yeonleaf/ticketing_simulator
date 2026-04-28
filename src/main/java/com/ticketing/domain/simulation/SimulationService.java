@@ -49,6 +49,14 @@ public class SimulationService {
         // Simulation 저장
         Simulation simulation = new Simulation(request);
         simulation.setVirtualThread(virtualThreadEnabled);
+        if (simulation.getName() == null || simulation.getName().isBlank()) {
+            String threadLabel = virtualThreadEnabled ? "VIRTUAL" : "PLATFORM";
+            simulation.setName(simulation.getAudienceCount() + "VUS"
+                    + "_" + simulation.getSeatSettingStrategy().name()
+                    + "_" + simulation.getAudienceDistributionStrategy().name()
+                    + "_" + simulation.getLockStrategy().name()
+                    + "_" + threadLabel);
+        }
         simulationRepository.save(simulation);
 
         // 좌석 생성 (simulation.getId()로 저장해야 시뮬레이션별 조회 가능)

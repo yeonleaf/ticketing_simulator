@@ -15,8 +15,11 @@
                     <form id="simForm">
 
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">시뮬레이션 이름</label>
-                            <input type="text" id="name" class="form-control" required placeholder="예) 뮤지컬 락 전략 비교">
+                            <label class="form-label fw-semibold">시뮬레이션 이름 <span class="text-muted fw-normal">(선택)</span></label>
+                            <input type="text" id="name" class="form-control" placeholder="예) 뮤지컬 락 전략 비교">
+                            <div class="form-text">
+                                이름을 입력하지 않으면 <code>{VUS}VUS_{좌석배치}_{관객분포}_{락전략}_{VIRTUAL|PLATFORM}</code> 형식으로 자동 저장됩니다.
+                            </div>
                         </div>
 
                         <div class="row mb-3">
