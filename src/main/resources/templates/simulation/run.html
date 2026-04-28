@@ -104,6 +104,26 @@
         </div>
     </div>
 
+    <!-- 응답시간 백분위 지표 -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">P90 응답시간 (ms)</div>
+                    <div id="cardP90" class="fs-3 fw-bold">-</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">P95 응답시간 (ms)</div>
+                    <div id="cardP95" class="fs-3 fw-bold">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 만족도 지표 -->
     <div class="row g-3 mb-4">
         <div class="col-md-4">
@@ -167,6 +187,8 @@
         document.getElementById('cardTps').textContent           = done ? (sim.totalTps?.toFixed(2) ?? '0.00') : '-';
         document.getElementById('cardAvgMs').textContent         = done ? (sim.avgResponseMs ?? 0) : '-';
         document.getElementById('cardDuplicate').textContent     = done ? (sim.duplicateHoldCount ?? 0) : '-';
+        document.getElementById('cardP90').textContent           = done ? (sim.p90ResponseMs ?? 0) : '-';
+        document.getElementById('cardP95').textContent           = done ? (sim.p95ResponseMs ?? 0) : '-';
         document.getElementById('cardFullySatisfied').textContent    = done ? (sim.fullySatisfiedCount ?? 0) : '-';
         document.getElementById('cardPartiallySatisfied').textContent = done ? (sim.partiallySatisfiedCount ?? 0) : '-';
         document.getElementById('cardUnsatisfied').textContent   = done ? (sim.unsatisfiedCount ?? 0) : '-';

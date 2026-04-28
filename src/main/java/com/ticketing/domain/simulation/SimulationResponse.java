@@ -24,6 +24,8 @@ public class SimulationResponse {
     private Instant finishedAt;
     private double totalTps;
     private long avgResponseMs;
+    private long p90ResponseMs;
+    private long p95ResponseMs;
     private int duplicateHoldCount;
     private int fullySatisfiedCount;
     private int partiallySatisfiedCount;
@@ -38,6 +40,8 @@ public class SimulationResponse {
         this.finishedAt = simulation.getFinishedAt();
         this.totalTps = simulation.getTotalTps();
         this.avgResponseMs = simulation.getAvgResponseMs();
+        this.p90ResponseMs = simulation.getP90ResponseMs();
+        this.p95ResponseMs = simulation.getP95ResponseMs();
         this.duplicateHoldCount = simulation.getDuplicateHoldCount();
         this.fullySatisfiedCount = simulation.getFullySatisfiedCount();
         this.partiallySatisfiedCount = simulation.getPartiallySatisfiedCount();

@@ -54,6 +54,10 @@ public class Simulation {
 
     private long avgResponseMs;
 
+    private long p90ResponseMs;
+
+    private long p95ResponseMs;
+
     private int duplicateHoldCount;
 
     @Column(columnDefinition = "TEXT")
@@ -94,11 +98,13 @@ public class Simulation {
         this.startedAt = Instant.now();
     }
 
-    public void finish(double totalTps, long avgResponseMs, int duplicateHoldCount, int fullySatisfiedCount, int partiallySatisfiedCount, int unsatisfiedCount) {
+    public void finish(double totalTps, long avgResponseMs, long p90ResponseMs, long p95ResponseMs, int duplicateHoldCount, int fullySatisfiedCount, int partiallySatisfiedCount, int unsatisfiedCount) {
         this.status = SimStatus.DONE;
         this.finishedAt = Instant.now();
         this.totalTps = totalTps;
         this.avgResponseMs = avgResponseMs;
+        this.p90ResponseMs = p90ResponseMs;
+        this.p95ResponseMs = p95ResponseMs;
         this.duplicateHoldCount = duplicateHoldCount;
         this.fullySatisfiedCount = fullySatisfiedCount;
         this.partiallySatisfiedCount = partiallySatisfiedCount;

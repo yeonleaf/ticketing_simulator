@@ -107,6 +107,8 @@ export function handleSummary(data) {
     const headers = { 'Content-Type': 'application/json' };
     const totalTps = Math.floor(data.metrics.http_reqs.values.rate);
     const avgResponseMs = Math.round(data.metrics.http_req_duration.values.avg);
+    const p90ResponseMs = Math.round(data.metrics.http_req_duration.values['p(90)']);
+    const p95ResponseMs = Math.round(data.metrics.http_req_duration.values['p(95)']);
 
     const duplicateHoldCount = data.metrics.duplicate_holds
         ? data.metrics.duplicate_holds.values.count
@@ -127,7 +129,9 @@ export function handleSummary(data) {
             JSON.stringify({
                 duplicateHoldCount,
                 totalTps,
-                avgResponseMs
+                avgResponseMs,
+                p90ResponseMs,
+                p95ResponseMs
             }), { headers });
     }
 }

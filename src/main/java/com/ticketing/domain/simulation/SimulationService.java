@@ -104,7 +104,7 @@ public class SimulationService {
 
         List<Seat> seats = seatRepository.findAllBySimulationId(simulationId);
 
-        return new SimulationResponse(simulationStatusService.updateSimulationStatusFinish(simulationId, request.totalTps(), request.avgResponseMs(), request.duplicateHoldCount(), fullySatisfiedCount, partiallySatisfiedCount, unsatisfiedCount), audiences, seats);
+        return new SimulationResponse(simulationStatusService.updateSimulationStatusFinish(simulationId, request.totalTps(), request.avgResponseMs(), request.p90ResponseMs() != null ? request.p90ResponseMs() : 0L, request.p95ResponseMs() != null ? request.p95ResponseMs() : 0L, request.duplicateHoldCount(), fullySatisfiedCount, partiallySatisfiedCount, unsatisfiedCount), audiences, seats);
 
     }
 
