@@ -11,6 +11,7 @@ export const options = {
       maxDuration: '3s',
     },
   },
+  summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)'],
 };
 
 const BASE_URL = __ENV.BASE_URL;
