@@ -3,6 +3,8 @@ name: Deploy to ECS
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'dashboard/**'
 
 env:
   AWS_REGION: ap-southeast-2
