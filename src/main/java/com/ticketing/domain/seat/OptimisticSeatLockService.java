@@ -44,15 +44,16 @@ public class OptimisticSeatLockService implements SeatLockService {
         try {
             // TransactionTemplate: 예외 발생 시 트랜잭션을 rollback 후 re-throw
             // → 트랜잭션 경계 밖에서 예외를 catch하므로 UnexpectedRollbackException 없음
-            return transactionTemplate.execute(status -> {
+            SeatHoldResultWrapper resultWrapper = transactionTemplate.execute(status -> {
                 Audience audience = audienceRepository.findById(audienceId)
                         .orElse(null);
-                if (audience == null) return SeatHoldResult.AUDIENCE_NOT_FOUND;
+                if (audience == null) return new SeatHoldResultWrapper(SeatHoldResult.AUDIENCE_NOT_FOUND, null);
 
                 Seat seat = seatRepository.findById(seatId)
                         .orElse(null);
-                if (seat == null) return SeatHoldResult.SEAT_NOT_FOUND;
-                if (!seat.isAvailable()) return SeatHoldResult.ALREADY_HELD;
+                if (seat == null) return new SeatHoldResultWrapper(SeatHoldResult.SEAT_NOT_FOUND, null);
+                if (!seat.isAvailable())
+                    return new SeatHoldResultWrapper(SeatHoldResult.ALREADY_HELD, seat.getSimulationId());
 
                 seat.hold(audienceId);
                 seatRepository.saveAndFlush(seat);
@@ -60,25 +61,28 @@ public class OptimisticSeatLockService implements SeatLockService {
                 audience.addAcquiredSeat(seatId);
                 audienceRepository.save(audience);
 
-                // 캐시에서 hold된 좌석 제거
-                String key = "seats:available:" + seat.getSimulationId();
-                String cached = redisTemplate.opsForValue().get(key);
-                if (cached != null) {
-                    try {
-                        List<SeatResponse> availableSeats = objectMapper.readValue(cached, new TypeReference<List<SeatResponse>>() {});
-                        List<SeatResponse> updatedSeats = availableSeats.stream()
-                                .filter(s -> !s.getId().equals(seatId))
-                                .collect(Collectors.toList());
-                        redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(updatedSeats));
-                    } catch (JsonProcessingException e) {
-                        log.warn("캐시 업데이트 실패 (seatId={})", seatId, e);
-                        // 캐시 업데이트 실패 시 캐시 삭제
-                        redisTemplate.delete(key);
-                    }
-                }
-
-                return SeatHoldResult.SUCCESS;
+                return new SeatHoldResultWrapper(SeatHoldResult.SUCCESS, seat.getSimulationId());
             });
+
+            // 캐시에서 hold된 좌석 제거
+            assert resultWrapper != null;
+            String key = "seats:available:" + resultWrapper.getSimulationId();
+            String cached = redisTemplate.opsForValue().get(key);
+            if (cached != null) {
+                try {
+                    List<SeatResponse> availableSeats = objectMapper.readValue(cached, new TypeReference<List<SeatResponse>>() {
+                    });
+                    List<SeatResponse> updatedSeats = availableSeats.stream()
+                            .filter(s -> !s.getId().equals(seatId))
+                            .collect(Collectors.toList());
+                    redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(updatedSeats));
+                } catch (JsonProcessingException e) {
+                    log.warn("캐시 업데이트 실패 (seatId={})", seatId, e);
+                    // 캐시 업데이트 실패 시 캐시 삭제
+                    redisTemplate.delete(key);
+                }
+            }
+            return resultWrapper.getSeatHoldResult();
         } catch (ObjectOptimisticLockingFailureException | PessimisticLockingFailureException op) {
             return SeatHoldResult.LOCK_CONFLICT;
         } catch (Exception e) {
