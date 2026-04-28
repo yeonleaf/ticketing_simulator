@@ -31,6 +31,10 @@
                                simulation.lockStrategy.name() == 'OPTIMISTIC'     ? 'bg-success' :
                                                                                      'bg-danger'}"
               class="badge fs-6"></span>
+        <span th:if="${simulation.virtualThread}"
+              class="badge bg-info text-dark fs-6">Virtual Thread</span>
+        <span th:unless="${simulation.virtualThread}"
+              class="badge bg-secondary fs-6">Platform Thread</span>
         <span class="ms-auto">
             <button id="btnStart" class="btn btn-warning"
                     th:disabled="${simulation.status.name() != 'READY'}">

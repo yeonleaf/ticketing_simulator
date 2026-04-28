@@ -67,6 +67,9 @@ public class Simulation {
     private int partiallySatisfiedCount;
     private int unsatisfiedCount;
 
+    @Column(nullable = false)
+    private boolean virtualThread;
+
     @Builder
     public Simulation(String name, int maxRow, int maxCol, int audienceCount,
                       SeatSettingStrategy seatSettingStrategy, LockStrategy lockStrategy,

@@ -18,6 +18,7 @@
                         <th>ID</th>
                         <th>이름</th>
                         <th>락 전략</th>
+                        <th>스레드</th>
                         <th>관객 분포</th>
                         <th>상태</th>
                         <th>시작</th>
@@ -27,7 +28,7 @@
                 </thead>
                 <tbody>
                     <tr th:if="${#lists.isEmpty(simulations)}">
-                        <td colspan="8" class="text-center text-muted py-4">등록된 시뮬레이션이 없습니다.</td>
+                        <td colspan="9" class="text-center text-muted py-4">등록된 시뮬레이션이 없습니다.</td>
                     </tr>
                     <tr th:each="sim : ${simulations}"
                         th:onclick="|location.href='/simulations/${sim.id}/run'|">
@@ -39,6 +40,12 @@
                                                    sim.lockStrategy.name() == 'OPTIMISTIC'     ? 'bg-success' :
                                                                                                   'bg-danger'}"
                                   class="badge"></span>
+                        </td>
+                        <td>
+                            <span th:if="${sim.virtualThread}"
+                                  class="badge bg-info text-dark">Virtual</span>
+                            <span th:unless="${sim.virtualThread}"
+                                  class="badge bg-secondary">Platform</span>
                         </td>
                         <td th:text="${sim.audienceDistributionStrategy}"></td>
                         <td>

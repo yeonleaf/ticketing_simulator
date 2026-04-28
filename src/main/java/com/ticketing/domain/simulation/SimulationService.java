@@ -8,6 +8,7 @@ import com.ticketing.domain.seat.*;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -27,6 +28,9 @@ import java.util.stream.Collectors;
 @Transactional
 public class SimulationService {
 
+    @Value("${spring.threads.virtual.enabled:false}")
+    private boolean virtualThreadEnabled;
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final SeatRepository seatRepository;
     private final OptimisticSeatLockService optimisticSeatLockService;
@@ -43,7 +47,9 @@ public class SimulationService {
     @Transactional
     public SimulationResponse createSimulation(SimulationRequest request) {
         // Simulation 저장
-        Simulation simulation = simulationRepository.save(new Simulation(request));
+        Simulation simulation = new Simulation(request);
+        simulation.setVirtualThread(virtualThreadEnabled);
+        simulationRepository.save(simulation);
 
         // 좌석 생성 (simulation.getId()로 저장해야 시뮬레이션별 조회 가능)
         List<Seat> seats = simulation.getSeatSettingStrategy().generateSeats(simulation.getId(), simulation.getMaxRow(), simulation.getMaxCol());

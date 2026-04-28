@@ -30,6 +30,7 @@ public class SimulationResponse {
     private int fullySatisfiedCount;
     private int partiallySatisfiedCount;
     private int unsatisfiedCount;
+    private boolean virtualThread;
 
     public SimulationResponse(Simulation simulation, List<Audience> audiences, List<Seat> seats) {
         this.id = simulation.getId();
@@ -46,6 +47,7 @@ public class SimulationResponse {
         this.fullySatisfiedCount = simulation.getFullySatisfiedCount();
         this.partiallySatisfiedCount = simulation.getPartiallySatisfiedCount();
         this.unsatisfiedCount = simulation.getUnsatisfiedCount();
+        this.virtualThread = simulation.isVirtualThread();
         seats.forEach(seat -> seatResponses.add(new SeatResponse(seat)));
         audiences.forEach(audience -> audienceResponses.add(new AudienceResponse(audience)));
     }
