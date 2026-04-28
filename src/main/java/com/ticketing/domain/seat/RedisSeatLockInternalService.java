@@ -24,19 +24,18 @@ public class RedisSeatLockInternalService {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final SeatRepository seatRepository;
     private final AudienceRepository audienceRepository;
-    private final RedisTemplate<String, String> redisTemplate;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public SeatHoldResult doHold(Long seatId, Long audienceId) {
+    public SeatHoldResultWrapper doHold(Long seatId, Long audienceId) {
         Audience audience = audienceRepository.findById(audienceId)
                 .orElse(null);
-        if (audience == null) return SeatHoldResult.FAIL;
+        if (audience == null) return new SeatHoldResultWrapper(SeatHoldResult.FAIL, null);
 
         Seat seat = seatRepository.findById(seatId)
                 .orElse(null);
-        if (seat == null) return SeatHoldResult.FAIL;
-        if (!seat.isAvailable()) return SeatHoldResult.ALREADY_HELD;
+        if (seat == null) return new SeatHoldResultWrapper(SeatHoldResult.FAIL, null);
+        if (!seat.isAvailable()) return new SeatHoldResultWrapper(SeatHoldResult.ALREADY_HELD, seat.getSimulationId());
 
         seat.hold(audienceId);
         seatRepository.save(seat);
@@ -44,24 +43,7 @@ public class RedisSeatLockInternalService {
         audience.addAcquiredSeat(seatId);
         audienceRepository.save(audience);
 
-        // 캐시에서 hold된 좌석 제거
-        String key = "seats:available:" + seat.getSimulationId();
-        String cached = redisTemplate.opsForValue().get(key);
-        if (cached != null) {
-            try {
-                List<SeatResponse> availableSeats = objectMapper.readValue(cached, new TypeReference<List<SeatResponse>>() {});
-                List<SeatResponse> updatedSeats = availableSeats.stream()
-                        .filter(s -> !s.getId().equals(seatId))
-                        .collect(Collectors.toList());
-                redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(updatedSeats));
-            } catch (JsonProcessingException e) {
-                log.warn("캐시 업데이트 실패 (seatId={})", seatId, e);
-                // 캐시 업데이트 실패 시 캐시 삭제
-                redisTemplate.delete(key);
-            }
-        }
-
-        return SeatHoldResult.SUCCESS;
+        return new SeatHoldResultWrapper(SeatHoldResult.SUCCESS, seat.getSimulationId());
     }
 
     public List<SeatResponse> getAllSeatsBySimulationId(Long simulationId) {
