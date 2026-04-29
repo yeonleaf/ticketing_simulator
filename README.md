@@ -1,3 +1,4 @@
+
 # 🎫 뮤지컬 티켓팅 시뮬레이터
 
 300~1000 동시 사용자 환경에서 **Pessimistic Lock, Optimistic Lock, Redisson 분산 Lock**의 성능과 안정성을 정량 비교하는 프로젝트입니다.
@@ -9,6 +10,7 @@
 Java 21 Virtual Threads · Spring Boot · Spring Data JPA · MySQL · Redis (Redisson) · k6 · GitHub Actions · AWS ECS Fargate · ALB · RDS · ECR
 
 ## 아키텍처
+<img width="700" height="700" alt="ticketing_simulator_architecture" src="https://github.com/user-attachments/assets/7019e16b-9c33-4636-81aa-fa1f0d49a196" />
 
 ## 벤치마크 결과 요약
 
