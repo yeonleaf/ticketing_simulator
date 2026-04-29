@@ -45,8 +45,8 @@ Java 21 Virtual Threads · Spring Boot · Spring Data JPA · MySQL · Redis (Red
 | 700 | 198 TPS / 767ms | 212 TPS / 628ms | **269 TPS** / 385ms |
 | 1000 | 185 TPS / 336ms | **238 TPS** / 646ms | 220 TPS / **195ms** |
 
-- Optimistic: TPS 선형 증가(158→238)하나 단일 인스턴스 DB 락에 의존하므로 스케일아웃 시 무력화
-- Redisson: 700 VUS에서 TPS 피크(269) 후 하락하는 degradation curve 확인, 응답시간은 전 구간 최안정
+- Optimistic: TPS 선형 증가(158→238)
+- Redisson: 700 VUS에서 TPS 피크(269) 후 하락하는 degradation curve 확인, 응답시간은 전 구간 안정
 - Pessimistic: 500 VUS에서 P95 8.8초로 사실상 서비스 불가 수준
 
 ### 결론
