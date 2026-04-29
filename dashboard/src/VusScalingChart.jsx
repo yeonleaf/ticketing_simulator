@@ -8,7 +8,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  ReferenceLine,
 } from "recharts";
 
 const COLORS = {
@@ -20,35 +19,117 @@ const COLORS = {
   cardBorder: "#1E293B",
   text: "#E2E8F0",
   textMuted: "#94A3B8",
+  accent: "#00C9A7",
 };
 
-const tpsData = [
-  { vus: 300, Pessimistic: 101, Optimistic: 158, Redisson: 145 },
-  { vus: 500, Pessimistic: 88, Optimistic: 193, Redisson: 211 },
-  { vus: 700, Pessimistic: 198, Optimistic: 212, Redisson: 269 },
-  { vus: 1000, Pessimistic: 185, Optimistic: 238, Redisson: 220 },
-];
+const data = {
+  1: {
+    tps: [
+      { vus: 300, Pessimistic: 101, Optimistic: 158, Redisson: 145 },
+      { vus: 500, Pessimistic: 88, Optimistic: 193, Redisson: 211 },
+      { vus: 700, Pessimistic: 198, Optimistic: 212, Redisson: 269 },
+      { vus: 1000, Pessimistic: 185, Optimistic: 238, Redisson: 220 },
+    ],
+    avg: [
+      { vus: 300, Pessimistic: 1197, Optimistic: 458, Redisson: 342 },
+      { vus: 500, Pessimistic: 3706, Optimistic: 987, Redisson: 934 },
+      { vus: 700, Pessimistic: 767, Optimistic: 628, Redisson: 385 },
+      { vus: 1000, Pessimistic: 336, Optimistic: 646, Redisson: 195 },
+    ],
+    p95: [
+      { vus: 300, Pessimistic: 5126, Optimistic: 1478, Redisson: 1675 },
+      { vus: 500, Pessimistic: 8780, Optimistic: 3270, Redisson: 3250 },
+      { vus: 700, Pessimistic: 3248, Optimistic: 2429, Redisson: 1551 },
+      { vus: 1000, Pessimistic: 2515, Optimistic: 1056, Redisson: 1354 },
+    ],
+    dup: [
+      { vus: 300, Pessimistic: 1349, Optimistic: 855, Redisson: 1414 },
+      { vus: 500, Pessimistic: 1163, Optimistic: 1382, Redisson: 3615 },
+      { vus: 700, Pessimistic: 1711, Optimistic: 1124, Redisson: 3549 },
+      { vus: 1000, Pessimistic: 713, Optimistic: 1727, Redisson: 2369 },
+    ],
+    insights: [
+      {
+        color: COLORS.optimistic,
+        title: "Optimistic — TPS 선형 증가",
+        body: "158→238로 꾸준히 상승. 단일 인스턴스에서 최고 처리량이나 멀티 인스턴스 시 DB 락 무력화",
+      },
+      {
+        color: COLORS.redisson,
+        title: "Redisson — 응답시간 최안정",
+        body: "1000 VUS에서도 avg 195ms로 최저. 700에서 TPS 피크(269) 후 하락하는 degradation curve 확인",
+      },
+      {
+        color: COLORS.pessimistic,
+        title: "Pessimistic — 500 VUS 병목",
+        body: "500 VUS에서 p95 8.8초로 폭발. 좌석 잔여 + 극심한 lock 경합이 겹치는 최악의 구간",
+      },
+    ],
+  },
+  2: {
+    tps: [
+      { vus: 300, Pessimistic: 215, Optimistic: 217, Redisson: 284 },
+      { vus: 500, Pessimistic: 343, Optimistic: 316, Redisson: 387 },
+      { vus: 700, Pessimistic: 320, Optimistic: 216, Redisson: 332 },
+      { vus: 1000, Pessimistic: 257, Optimistic: 308, Redisson: 538 },
+    ],
+    avg: [
+      { vus: 300, Pessimistic: 158, Optimistic: 75, Redisson: 55 },
+      { vus: 500, Pessimistic: 218, Optimistic: 197, Redisson: 310 },
+      { vus: 700, Pessimistic: 137, Optimistic: 1435, Redisson: 679 },
+      { vus: 1000, Pessimistic: 1084, Optimistic: 214, Redisson: 338 },
+    ],
+    p95: [
+      { vus: 300, Pessimistic: 486, Optimistic: 222, Redisson: 321 },
+      { vus: 500, Pessimistic: 683, Optimistic: 705, Redisson: 2052 },
+      { vus: 700, Pessimistic: 318, Optimistic: 6574, Redisson: 2113 },
+      { vus: 1000, Pessimistic: 3346, Optimistic: 657, Redisson: 1010 },
+    ],
+    dup: [
+      { vus: 300, Pessimistic: 622, Optimistic: 540, Redisson: 2417 },
+      { vus: 500, Pessimistic: 1317, Optimistic: 1139, Redisson: 4743 },
+      { vus: 700, Pessimistic: 1229, Optimistic: 2778, Redisson: 5929 },
+      { vus: 1000, Pessimistic: 2905, Optimistic: 1988, Redisson: 9266 },
+    ],
+    insights: [
+      {
+        color: COLORS.redisson,
+        title: "Redisson — TPS 538, 2.4배 스케일링",
+        body: "1000 VUS에서 단일 인스턴스(220) 대비 2.4배. Pessimistic(257), Optimistic(308)을 압도",
+      },
+      {
+        color: COLORS.optimistic,
+        title: "Optimistic — 700 VUS에서 붕괴",
+        body: "p95 6574ms로 폭발, TPS 216으로 급락. 2인스턴스 간 version 충돌로 재시도 폭증",
+      },
+      {
+        color: COLORS.pessimistic,
+        title: "Pessimistic — 안정적이나 천장 낮음",
+        body: "TPS 215~343 범위로 완만. DB 행 잠금이 직렬화하여 인스턴스 추가 효과 제한적",
+      },
+    ],
+  },
+};
 
-const avgData = [
-  { vus: 300, Pessimistic: 1197, Optimistic: 458, Redisson: 342 },
-  { vus: 500, Pessimistic: 3706, Optimistic: 987, Redisson: 934 },
-  { vus: 700, Pessimistic: 767, Optimistic: 628, Redisson: 385 },
-  { vus: 1000, Pessimistic: 336, Optimistic: 646, Redisson: 195 },
-];
-
-const p95Data = [
-  { vus: 300, Pessimistic: 5126, Optimistic: 1478, Redisson: 1675 },
-  { vus: 500, Pessimistic: 8780, Optimistic: 3270, Redisson: 3250 },
-  { vus: 700, Pessimistic: 3248, Optimistic: 2429, Redisson: 1551 },
-  { vus: 1000, Pessimistic: 2515, Optimistic: 1056, Redisson: 1354 },
-];
-
-const dupData = [
-  { vus: 300, Pessimistic: 1349, Optimistic: 855, Redisson: 1414 },
-  { vus: 500, Pessimistic: 1163, Optimistic: 1382, Redisson: 3615 },
-  { vus: 700, Pessimistic: 1711, Optimistic: 1124, Redisson: 3549 },
-  { vus: 1000, Pessimistic: 713, Optimistic: 1727, Redisson: 2369 },
-];
+const Badge = ({ children, active, onClick }) => (
+  <button
+    onClick={onClick}
+    style={{
+      padding: "6px 16px",
+      borderRadius: 20,
+      border: active ? `1px solid ${COLORS.accent}` : "1px solid #334155",
+      background: active ? `${COLORS.accent}18` : "transparent",
+      color: active ? COLORS.accent : COLORS.textMuted,
+      fontSize: 13,
+      fontWeight: 500,
+      cursor: "pointer",
+      transition: "all 0.2s",
+      fontFamily: "'JetBrains Mono', monospace",
+    }}
+  >
+    {children}
+  </button>
+);
 
 const CustomTooltip = ({ active, payload, label, suffix = "" }) => {
   if (!active || !payload) return null;
@@ -119,9 +200,9 @@ const ChartTitle = ({ title, sub }) => (
   </div>
 );
 
-const renderChart = (data, suffix, yDomain) => (
+const renderChart = (chartData, suffix, yDomain) => (
   <ResponsiveContainer width="100%" height={260}>
-    <LineChart data={data} margin={{ left: 10, right: 20, top: 10, bottom: 5 }}>
+    <LineChart data={chartData} margin={{ left: 10, right: 20, top: 10, bottom: 5 }}>
       <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
       <XAxis
         dataKey="vus"
@@ -177,6 +258,9 @@ const renderChart = (data, suffix, yDomain) => (
 );
 
 export default function ScalingChart() {
+  const [instances, setInstances] = useState(1);
+  const d = data[instances];
+
   return (
     <div
       style={{
@@ -184,6 +268,7 @@ export default function ScalingChart() {
         minHeight: "100vh",
         fontFamily: "'Pretendard', -apple-system, sans-serif",
         padding: "32px 24px",
+        textAlign: "left",
       }}
     >
       <link
@@ -229,6 +314,32 @@ export default function ScalingChart() {
           </p>
         </div>
 
+        {/* Instance Toggle */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            marginBottom: 24,
+          }}
+        >
+          <span
+            style={{
+              fontSize: 12,
+              color: COLORS.textMuted,
+              fontFamily: "'JetBrains Mono', monospace",
+            }}
+          >
+            INSTANCES
+          </span>
+          <Badge active={instances === 1} onClick={() => setInstances(1)}>
+            1 Instance
+          </Badge>
+          <Badge active={instances === 2} onClick={() => setInstances(2)}>
+            2 Instances
+          </Badge>
+        </div>
+
         {/* Charts Grid */}
         <div
           style={{
@@ -240,22 +351,22 @@ export default function ScalingChart() {
         >
           <Card>
             <ChartTitle title="Total TPS" sub="높을수록 우수" />
-            {renderChart(tpsData, "", [0, 300])}
+            {renderChart(d.tps, "", [0, instances === 2 ? 600 : 300])}
           </Card>
 
           <Card>
             <ChartTitle title="평균 응답시간 (ms)" sub="낮을수록 우수" />
-            {renderChart(avgData, "ms", [0, "auto"])}
+            {renderChart(d.avg, "ms", [0, "auto"])}
           </Card>
 
           <Card>
             <ChartTitle title="P95 응답시간 (ms)" sub="낮을수록 우수 · tail latency" />
-            {renderChart(p95Data, "ms", [0, "auto"])}
+            {renderChart(d.p95, "ms", [0, "auto"])}
           </Card>
 
           <Card>
             <ChartTitle title="중복 선점" sub="낮을수록 우수" />
-            {renderChart(dupData, "건", [0, "auto"])}
+            {renderChart(d.dup, "건", [0, "auto"])}
           </Card>
         </div>
 
@@ -272,92 +383,40 @@ export default function ScalingChart() {
             Key Insights
           </h2>
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-            <div
-              style={{
-                flex: 1,
-                minWidth: 200,
-                background: `${COLORS.optimistic}08`,
-                border: `1px solid ${COLORS.optimistic}25`,
-                borderRadius: 10,
-                padding: "14px 16px",
-              }}
-            >
+            {d.insights.map((item, i) => (
               <div
+                key={i}
                 style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: COLORS.optimistic,
-                  marginBottom: 6,
-                  fontFamily: "'JetBrains Mono', monospace",
+                  flex: 1,
+                  minWidth: 200,
+                  background: `${item.color}08`,
+                  border: `1px solid ${item.color}25`,
+                  borderRadius: 10,
+                  padding: "14px 16px",
                 }}
               >
-                Optimistic — TPS 선형 증가
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: item.color,
+                    marginBottom: 6,
+                    fontFamily: "'JetBrains Mono', monospace",
+                  }}
+                >
+                  {item.title}
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: COLORS.textMuted,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {item.body}
+                </div>
               </div>
-              <div
-                style={{ fontSize: 12, color: COLORS.textMuted, lineHeight: 1.6 }}
-              >
-                158→238로 꾸준히 상승. 단일 인스턴스에서 최고 처리량이나 멀티
-                인스턴스 시 DB 락 무력화
-              </div>
-            </div>
-
-            <div
-              style={{
-                flex: 1,
-                minWidth: 200,
-                background: `${COLORS.redisson}08`,
-                border: `1px solid ${COLORS.redisson}25`,
-                borderRadius: 10,
-                padding: "14px 16px",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: COLORS.redisson,
-                  marginBottom: 6,
-                  fontFamily: "'JetBrains Mono', monospace",
-                }}
-              >
-                Redisson — 응답시간 최안정
-              </div>
-              <div
-                style={{ fontSize: 12, color: COLORS.textMuted, lineHeight: 1.6 }}
-              >
-                1000 VUS에서도 avg 195ms로 최저. 700에서 TPS 피크(269) 후
-                하락하는 degradation curve 확인
-              </div>
-            </div>
-
-            <div
-              style={{
-                flex: 1,
-                minWidth: 200,
-                background: `${COLORS.pessimistic}08`,
-                border: `1px solid ${COLORS.pessimistic}25`,
-                borderRadius: 10,
-                padding: "14px 16px",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: COLORS.pessimistic,
-                  marginBottom: 6,
-                  fontFamily: "'JetBrains Mono', monospace",
-                }}
-              >
-                Pessimistic — 500 VUS 병목
-              </div>
-              <div
-                style={{ fontSize: 12, color: COLORS.textMuted, lineHeight: 1.6 }}
-              >
-                500 VUS에서 p95 8.8초로 폭발. 좌석 잔여 + 극심한 lock 경합이
-                겹치는 최악의 구간
-              </div>
-            </div>
+            ))}
           </div>
         </Card>
 
