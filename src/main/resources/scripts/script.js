@@ -8,7 +8,6 @@ export const options = {
       executor: 'per-vu-iterations',
       vus: parseInt(__ENV.TOT_VUS),
       iterations: 1,
-      maxDuration: '3s',
     },
   },
   summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)'],
