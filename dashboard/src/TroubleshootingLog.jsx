@@ -164,6 +164,7 @@ export default function TroubleshootingTimeline() {
         minHeight: "100vh",
         fontFamily: "'Pretendard', -apple-system, sans-serif",
         padding: "40px 24px",
+        textAlign: "left",
       }}
     >
       <link
