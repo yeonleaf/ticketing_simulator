@@ -5,12 +5,18 @@
 
 > 📊 [인터랙티브 벤치마크 대시보드](https://yeonleaf.github.io/ticketing_simulator/)
 
+<br>
+
 ## 기술 스택
 
 Java 21 Virtual Threads · Spring Boot · Spring Data JPA · MySQL · Redis (Redisson) · k6 · GitHub Actions · AWS ECS Fargate · ALB · RDS · ECR
 
+<br>
+
 ## 아키텍처
 <img width="700" height="700" alt="ticketing_simulator_architecture" src="https://github.com/user-attachments/assets/7019e16b-9c33-4636-81aa-fa1f0d49a196" />
+
+<br>
 
 ## 벤치마크 결과 요약
 
@@ -35,6 +41,8 @@ Java 21 Virtual Threads · Spring Boot · Spring Data JPA · MySQL · Redis (Red
 
 - 충돌이 분산되면 세 전략 간 TPS 차이가 10% 이내로 수렴
 - Redisson Platform 응답시간(172ms)이 전 시나리오 통틀어 최저
+  
+<br>
 
 ### VUS 스케일링 (Musical Standard · Platform · 300→1000)
 
@@ -48,10 +56,8 @@ Java 21 Virtual Threads · Spring Boot · Spring Data JPA · MySQL · Redis (Red
 - Optimistic: TPS 선형 증가(158→238)
 - Redisson: 700 VUS에서 TPS 피크(269) 후 하락하는 degradation curve 확인, 응답시간은 전 구간 안정
 - Pessimistic: 500 VUS에서 P95 8.8초로 사실상 서비스 불가 수준
-
-### 결론
-
-> 단일 인스턴스에서는 Optimistic이 TPS 우위이나, 멀티 인스턴스 환경에서는 DB 락이 무력화되므로 Redisson이 유일한 선택지. Redisson은 hotspot 환경에서도 응답시간 악화가 제한적이며 스케일아웃을 지원하는 아키텍처적 장점이 있다.
+  
+<br>
 
 ## 트러블슈팅
 
@@ -62,5 +68,3 @@ Java 21 Virtual Threads · Spring Boot · Spring Data JPA · MySQL · Redis (Red
 | Lock wait timeout (MySQL 1205) | 트랜잭션 내 Redis I/O로 DB row lock 보유 시간 증가 | 캐시 갱신 로직을 트랜잭션 밖으로 분리 |
 | 캐시 분리 후 TPS 57% 악화 (160→69) | 분산 락 해제 ~ 캐시 갱신 사이 stale read 발생 | 캐시를 트랜잭션 밖 + 분산 락 안에 배치 |
 | 실패 시에도 불필요한 캐시 I/O | 결과와 무관하게 매 요청 Redis 접근 | SUCCESS 조건 가드 추가 |
-
-> 상세 내용은 [트러블슈팅 로그](https://yeonleaf.github.io/ticketing_simulator/)에서 확인할 수 있습니다.
