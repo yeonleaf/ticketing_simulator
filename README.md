@@ -21,7 +21,7 @@ Java 21 Virtual Threads · Spring Boot · Spring Data JPA · MySQL · Redis (Red
 - Application: AWS ECS Fargate, task 1~2개
 - Database: AWS RDS MySQL, instance type db.t4g.micro
 - Redis: ElastiCache Valkey 8.1
-- Load Test: k6, VUS 300/500/700/1000
+- Load Test: k6, VUS 300/500/700/1000, Seats 200
 - Scenario:
   - Musical Standard: 인기 좌석에 요청이 편중되는 hotspot 분포
   - Uniform: 좌석 선택이 균등 분포
