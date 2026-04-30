@@ -82,3 +82,22 @@ Java 21 Virtual Threads · Spring Boot · Spring Data JPA · MySQL · Redis (Red
 | Lock wait timeout (MySQL 1205) | 트랜잭션 내 Redis I/O로 DB row lock 보유 시간 증가 | 캐시 갱신 로직을 트랜잭션 밖으로 분리 |
 | 캐시 분리 후 TPS 57% 악화 (160→69) | 분산 락 해제 ~ 캐시 갱신 사이 stale read 발생 | 캐시를 트랜잭션 밖 + 분산 락 안에 배치 |
 | 실패 시에도 불필요한 캐시 I/O | 결과와 무관하게 매 요청 Redis 접근 | SUCCESS 조건 가드 추가 |
+
+<br>
+
+## 사용 방법
+### LOCAL
+1. `git clone`
+2. docker desktop 실행
+3. `docker compose up -d`
+4. Active Profiles=test
+5. 앱 실행
+6. localhost:8080
+
+### TEST
+1. `git clone`
+2. docker desktop 실행
+3. `docker compose up -d`
+4. 테스트 실행
+
+<br>
