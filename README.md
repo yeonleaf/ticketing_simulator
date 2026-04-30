@@ -1,4 +1,4 @@
-# 🎫 뮤지컬 티켓팅 시뮬레이터
+# 🎫 뮤지컬 티켓팅 동시성 제어 전략 비교 시스템
 
 300~1000 동시 사용자 환경에서 **Pessimistic Lock, Optimistic Lock, Redisson 분산 Lock**의 성능과 안정성을 정량 비교하는 프로젝트입니다.
 
@@ -30,9 +30,8 @@ Java 21 Virtual Threads · Spring Boot · Spring Data JPA · MySQL · Redis (Red
   - avg latency
   - p90 latency
   - p95 latency
-  - duplicated hold count
-  - failed request count
-
+  - duplicated hold count (좌석 경합 횟수)
+ 
 <br>
 
 ## 벤치마크 결과 요약
@@ -57,7 +56,7 @@ Java 21 Virtual Threads · Spring Boot · Spring Data JPA · MySQL · Redis (Red
 | P95 (Platform / Virtual) | 1358 / 1815ms | **978** / 1511ms | 852 / 2037ms |
 
 - 충돌이 분산되면 세 전략 간 TPS 차이가 10% 이내로 수렴
-- Redisson Platform 응답시간(172ms)이 전 시나리오 통틀어 최저
+- Redisson 응답시간(172ms)이 전 시나리오 통틀어 최저
 
 ### VUS 스케일링 — 1 Instance (Musical Standard · Platform)
 
@@ -87,7 +86,7 @@ Java 21 Virtual Threads · Spring Boot · Spring Data JPA · MySQL · Redis (Red
 
 ### 결론
 
-> 단일 인스턴스에서는 Optimistic이 TPS 우위(238)를 보이나, 2인스턴스 환경에서는 700 VUS에서 P95 6.5초로 붕괴한다. 반면 Redisson은 1000 VUS에서 TPS 538로 2.4배 스케일링에 성공하며, 멀티 인스턴스 환경에서 유일하게 선형에 가까운 확장성을 보였다.
+> 단일 인스턴스에서는 Optimistic이 TPS 우위(238)를 보이나, 2인스턴스 환경에서는 700 VUS에서 P95 6.5초로 붕괴한다. 반면 Redisson은 1000 VUS에서 TPS 538로 2.4배 스케일링에 성공하며, 본 실험 조건에서는 멀티 인스턴스 환경에서 안정적으로 선형에 가까운 확장성을 보였다.
 
 <br>
 
