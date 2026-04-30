@@ -5,6 +5,7 @@ on:
     branches: [ main ]
     paths-ignore:
       - 'dashboard/**'
+      - 'README.md'
 
 env:
   AWS_REGION: ap-southeast-2
