@@ -6,6 +6,11 @@
 
 <br>
 
+## 스크린샷
+<img width="1920" height="888" alt="image" src="https://github.com/user-attachments/assets/8fe9b23b-4cb6-47e3-86db-b243e5bdf63b" />
+
+<br>
+
 ## 기술 스택
 
 Java 21 Virtual Threads · Spring Boot · Spring Data JPA · MySQL · Redis (Redisson) · k6 · GitHub Actions · AWS ECS Fargate · ALB · RDS · ECR
