@@ -3,7 +3,7 @@ spring:
     virtual:
       enabled: false
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/ticketing?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=UTF-8}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3307/ticketing?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=UTF-8}
     username: ${SPRING_DATASOURCE_USERNAME:ticketing}
     password: ${SPRING_DATASOURCE_PASSWORD:ticketing}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -11,7 +11,7 @@ spring:
       maximum-pool-size: 15
   jpa:
     hibernate:
-      ddl-auto: ${SPRING_JPA_DDL_AUTO:create-drop}
+      ddl-auto: ${SPRING_JPA_DDL_AUTO:create}
     show-sql: false
     properties:
       hibernate:
@@ -22,7 +22,7 @@ spring:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
       ssl:
-        enabled: ${SPRING_DATA_REDIS_SSL_ENABLED:false}
+        enabled: ${SPRING_DATA_REDIS_SSL_ENABLED:true}
 server:
   port: 8080
   tomcat:

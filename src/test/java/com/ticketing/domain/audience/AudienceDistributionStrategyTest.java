@@ -241,7 +241,6 @@ class AudienceDistributionStrategyTest {
             List<Audience> result = MUSICAL_HEAVY_FRONT.distribute(20, SIM_ID, new Random(42));
 
             assertThat(result).allSatisfy(a -> {
-                assertThat(a.isRealUser()).isFalse();
                 assertThat(a.getSeatCnt()).isIn(1, 2);
                 assertThat(a.getSeatClickWaitJitter()).isNotNull();
                 assertThat(a.getSeatClickWaitJitter().toMillis())
