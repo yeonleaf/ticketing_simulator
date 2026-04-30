@@ -1,4 +1,3 @@
-
 # 🎫 뮤지컬 티켓팅 시뮬레이터
 
 300~1000 동시 사용자 환경에서 **Pessimistic Lock, Optimistic Lock, Redisson 분산 Lock**의 성능과 안정성을 정량 비교하는 프로젝트입니다.
@@ -41,10 +40,8 @@ Java 21 Virtual Threads · Spring Boot · Spring Data JPA · MySQL · Redis (Red
 
 - 충돌이 분산되면 세 전략 간 TPS 차이가 10% 이내로 수렴
 - Redisson Platform 응답시간(172ms)이 전 시나리오 통틀어 최저
-  
-<br>
 
-### VUS 스케일링 (Musical Standard · Platform · 300→1000)
+### VUS 스케일링 — 1 Instance (Musical Standard · Platform)
 
 | VUS | Pessimistic | Optimistic | Redisson |
 |---|---|---|---|
@@ -56,7 +53,24 @@ Java 21 Virtual Threads · Spring Boot · Spring Data JPA · MySQL · Redis (Red
 - Optimistic: TPS 선형 증가(158→238)
 - Redisson: 700 VUS에서 TPS 피크(269) 후 하락하는 degradation curve 확인, 응답시간은 전 구간 안정
 - Pessimistic: 500 VUS에서 P95 8.8초로 사실상 서비스 불가 수준
-  
+
+### VUS 스케일링 — 2 Instances (Musical Standard · Platform)
+
+| VUS | Pessimistic | Optimistic | Redisson |
+|---|---|---|---|
+| 300 | 215 TPS / 158ms | 217 TPS / 75ms | **284 TPS** / **55ms** |
+| 500 | 343 TPS / 218ms | 316 TPS / 197ms | **387 TPS** / 310ms |
+| 700 | 320 TPS / 137ms | 216 TPS / 1435ms | **332 TPS** / 679ms |
+| 1000 | 257 TPS / 1084ms | 308 TPS / 214ms | **538 TPS** / **338ms** |
+
+- **Redisson: 1000 VUS에서 TPS 538로 단일 인스턴스(220) 대비 2.4배 스케일링**
+- Optimistic: 700 VUS에서 P95 6574ms로 붕괴 — 2인스턴스 간 version 충돌로 재시도 폭증
+- Pessimistic: TPS 215~343 범위로 완만 — DB 행 잠금이 직렬화하여 인스턴스 추가 효과 제한적
+
+### 결론
+
+> 단일 인스턴스에서는 Optimistic이 TPS 우위(238)를 보이나, 2인스턴스 환경에서는 700 VUS에서 P95 6.5초로 붕괴한다. 반면 Redisson은 1000 VUS에서 TPS 538로 2.4배 스케일링에 성공하며, 멀티 인스턴스 환경에서 유일하게 선형에 가까운 확장성을 보였다.
+
 <br>
 
 ## 트러블슈팅
