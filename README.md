@@ -91,7 +91,7 @@ Java 21 Virtual Threads · Spring Boot · Spring Data JPA · MySQL · Redis (Red
 
 ### 결론
 
-> 단일 인스턴스에서는 Optimistic이 TPS 우위(238)를 보이나, 2인스턴스 환경에서는 700 VUS에서 P95 6.5초로 붕괴한다. 반면 Redisson은 1000 VUS에서 TPS 538로 2.4배 스케일링에 성공하며, 본 실험 조건에서는 멀티 인스턴스 환경에서 안정적으로 선형에 가까운 확장성을 보였다.
+> 단일 인스턴스에서는 Optimistic이 TPS 선형 증가세 (300VUS -> 1000VUS : TPS 150 -> 238)를 보이나, 2인스턴스 환경에서는 700 VUS에서 P95 6.5초로 붕괴한다. 반면 Redisson은 1000 VUS에서 TPS 538로 피크 대비 약 1.96배로 거의 선형 확장을 달성했다.
 
 <br>
 
