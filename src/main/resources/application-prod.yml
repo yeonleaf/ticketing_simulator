@@ -38,4 +38,5 @@ k6:
 logging:
   level:
     com.ticketing: DEBUG
-    org.hibernate.SQL: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
