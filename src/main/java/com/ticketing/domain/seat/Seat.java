@@ -35,7 +35,6 @@ public class Seat {
 
     private Long holderId;
 
-    @Version
     private Long version;
 
     @Builder

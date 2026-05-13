@@ -9,7 +9,10 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.dao.PessimisticLockingFailureException;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
@@ -55,33 +58,42 @@ public class OptimisticSeatLockService implements SeatLockService {
                 if (!seat.isAvailable())
                     return new SeatHoldResultWrapper(SeatHoldResult.ALREADY_HELD, seat.getSimulationId());
 
-                seat.hold(audienceId);
-                seatRepository.saveAndFlush(seat);
+                int affected = seatRepository.updateIfVersionMatches(
+                        seat.getId(),
+                        seat.getVersion(),
+                        SeatStatus.HELD.name(),
+                        audienceId
+                );
+                if (affected == 0) {
+                    return new SeatHoldResultWrapper(SeatHoldResult.LOCK_CONFLICT, seat.getSimulationId());
+                }
 
                 audience.addAcquiredSeat(seatId);
-                audienceRepository.save(audience);
-
                 return new SeatHoldResultWrapper(SeatHoldResult.SUCCESS, seat.getSimulationId());
             });
 
             // 캐시에서 hold된 좌석 제거
             assert resultWrapper != null;
-            String key = "seats:available:" + resultWrapper.getSimulationId();
-            String cached = redisTemplate.opsForValue().get(key);
-            if (cached != null) {
-                try {
-                    List<SeatResponse> availableSeats = objectMapper.readValue(cached, new TypeReference<List<SeatResponse>>() {
-                    });
-                    List<SeatResponse> updatedSeats = availableSeats.stream()
-                            .filter(s -> !s.getId().equals(seatId))
-                            .collect(Collectors.toList());
-                    redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(updatedSeats));
-                } catch (JsonProcessingException e) {
-                    log.warn("캐시 업데이트 실패 (seatId={})", seatId, e);
-                    // 캐시 업데이트 실패 시 캐시 삭제
-                    redisTemplate.delete(key);
+
+            if (resultWrapper.getSeatHoldResult() == SeatHoldResult.SUCCESS) {
+                String key = "seats:available:" + resultWrapper.getSimulationId();
+                String cached = redisTemplate.opsForValue().get(key);
+                if (cached != null) {
+                    try {
+                        List<SeatResponse> availableSeats = objectMapper.readValue(cached, new TypeReference<List<SeatResponse>>() {
+                        });
+                        List<SeatResponse> updatedSeats = availableSeats.stream()
+                                .filter(s -> !s.getId().equals(seatId))
+                                .collect(Collectors.toList());
+                        redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(updatedSeats));
+                    } catch (JsonProcessingException e) {
+                        log.warn("캐시 업데이트 실패 (seatId={})", seatId, e);
+                        // 캐시 업데이트 실패 시 캐시 삭제
+                        redisTemplate.delete(key);
+                    }
                 }
             }
+
             return resultWrapper.getSeatHoldResult();
         } catch (ObjectOptimisticLockingFailureException | PessimisticLockingFailureException op) {
             return SeatHoldResult.LOCK_CONFLICT;

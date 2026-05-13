@@ -44,7 +44,6 @@ public class Audience {
     @Column(name = "seat_id")
     private Set<Long> acquiredSeatIds = new HashSet<>();
 
-    @Version
     private Long version;
 
     @Builder
