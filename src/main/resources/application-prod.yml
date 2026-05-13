@@ -37,13 +37,5 @@ k6:
 
 logging:
   level:
-    p6spy: DEBUG
+    com.ticketing: DEBUG
     org.hibernate.SQL: INFO
-    org.hibernate.orm.jdbc.bind: INFO
-
-decorator:
-  datasource:
-    p6spy:
-      enable-logging: true
-      multiline: true
-      logging: slf4j
