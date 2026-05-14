@@ -114,7 +114,6 @@ export function handleSummary(data) {
         ? data.metrics.duplicate_holds.values.count
         : 0;
 
-    // infra_error check 비율로 실패 판단
     const checks = data.root_group.checks;
     const infraCheck = checks.find(c => c.name === 'infra_error');
     const hasInfraFailure = infraCheck && infraCheck.passes > 0;

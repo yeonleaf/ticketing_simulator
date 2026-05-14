@@ -4,11 +4,13 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'k6/**'
+      - 'src/main/resources/scripts/**'
+      - 'Dockerfile.k6'
+      - '.github/workflows/deploy-k6.yml'
 
 env:
   AWS_REGION: ap-southeast-2
-  ECR_REPOSITORY: ticketing-k6   # ← 너 k6 repo 이름
+  ECR_REPOSITORY: ticket/k6   # ← 너 k6 repo 이름
 
 jobs:
   deploy:
@@ -33,6 +35,6 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           cd k6
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          docker build -t --platform linux/amd64 $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest

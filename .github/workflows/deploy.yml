@@ -6,6 +6,9 @@ on:
     paths-ignore:
       - 'dashboard/**'
       - 'README.md'
+      - 'src/main/resources/scripts/**'
+      - 'Dockerfile.k6'
+      - '.github/workflows/deploy-k6.yml'
 
 env:
   AWS_REGION: ap-southeast-2
