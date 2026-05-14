@@ -72,7 +72,7 @@ public class OptimisticSeatLockService implements SeatLockService {
                     return new SeatHoldResultWrapper(SeatHoldResult.LOCK_CONFLICT, seat.getSimulationId());
                 }
 
-                audience.addAcquiredSeat(seatId);
+                audienceRepository.insertAcquiredSeat(audienceId, seat.getId());
                 return new SeatHoldResultWrapper(SeatHoldResult.SUCCESS, seat.getSimulationId());
             });
 

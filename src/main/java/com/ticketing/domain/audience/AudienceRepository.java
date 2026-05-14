@@ -3,7 +3,9 @@ package com.ticketing.domain.audience;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import javax.swing.text.html.Option;
 import java.util.List;
@@ -20,5 +22,11 @@ public interface AudienceRepository extends JpaRepository<Audience, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM Audience a WHERE a.id = :id")
     Optional<Audience> findByIdForUpdate(Long id);
+
+    @Modifying
+    @Query(value = "INSERT INTO audience_acquired_seats (audience_id, seat_id) VALUES (:audienceId, :seatId)",
+            nativeQuery = true)
+    void insertAcquiredSeat(@Param("audienceId") Long audienceId, @Param("seatId") Long seatId);
+
 
 }
