@@ -64,6 +64,10 @@ public class OptimisticSeatLockService implements SeatLockService {
                         SeatStatus.HELD.name(),
                         audienceId
                 );
+
+                log.info("UPDATE attempt: seatId={}, version={}, status={}, affected={}",
+                        seat.getId(), seat.getVersion(), SeatStatus.HELD.name(), affected);
+
                 if (affected == 0) {
                     return new SeatHoldResultWrapper(SeatHoldResult.LOCK_CONFLICT, seat.getSimulationId());
                 }
