@@ -44,7 +44,8 @@ public class Audience {
     @Column(name = "seat_id")
     private Set<Long> acquiredSeatIds = new HashSet<>();
 
-    private Long version;
+    @Column(nullable = false)
+    private Long version = 0L;
 
     @Builder
     public Audience(Long simulationId, boolean isRealUser, int seatCnt,

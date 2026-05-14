@@ -35,7 +35,8 @@ public class Seat {
 
     private Long holderId;
 
-    private Long version;
+    @Column(nullable = false)
+    private Long version = 0L;
 
     @Builder
     public Seat(Long simulationId, int row, int col,
