@@ -57,6 +57,7 @@ public class SimulationController {
 
     @PostMapping("/api/simulations")
     public ResponseEntity<SimulationResponse> createSimulation(@ModelAttribute SimulationRequest request) {
+        // deploy-k6.yml은 실행되어서는 안됨
         return ResponseEntity.ok(simulationService.createSimulation(request));
     }
 
