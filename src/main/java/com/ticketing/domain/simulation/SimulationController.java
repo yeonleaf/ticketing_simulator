@@ -10,10 +10,14 @@ import com.ticketing.domain.seat.Seat;
 import com.ticketing.domain.seat.SeatRepository;
 import com.ticketing.domain.seat.SeatResponse;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import software.amazon.awssdk.regions.Region;
@@ -23,11 +27,16 @@ import software.amazon.awssdk.services.ecs.model.KeyValuePair;
 import software.amazon.awssdk.services.ecs.model.LaunchType;
 import software.amazon.awssdk.services.ecs.model.RunTaskRequest;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Arrays;
@@ -156,4 +165,89 @@ public class SimulationController {
     }
 
     public record FailRequest(String message) {}
+
+    @GetMapping("/api/simulations/export")
+    public ResponseEntity<byte[]> exportSimulations(@RequestParam List<Long> ids) throws IOException {
+        List<Simulation> simulations = ids.stream()
+                .map(id -> simulationService.getSimulation(id))
+                .collect(Collectors.toList());
+
+        byte[] bytes = buildExcel(simulations);
+
+        String filename = URLEncoder.encode("simulation_export.xlsx", StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + filename)
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(bytes);
+    }
+
+    private static final String[] HEADERS = {
+            "ID", "이름", "락 전략", "스레드", "관객 분포", "좌석 배치",
+            "좌석 수", "관객 수", "상태",
+            "TPS", "평균 응답(ms)", "P90(ms)", "P95(ms)",
+            "Hold 총 시도", "Hold 성공", "중복 선점", "Lock 충돌", "Lock 타임아웃",
+            "완전 만족", "부분 만족", "미충족",
+            "시작 시각", "종료 시각"
+    };
+
+    private static final DateTimeFormatter DT_FMT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("Asia/Seoul"));
+
+    private byte[] buildExcel(List<Simulation> simulations) throws IOException {
+        try (Workbook wb = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = wb.createSheet("simulations");
+
+            // 헤더 행
+            CellStyle headerStyle = wb.createCellStyle();
+            Font headerFont = wb.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+            headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < HEADERS.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(HEADERS[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // 데이터 행
+            int rowNum = 1;
+            for (Simulation s : simulations) {
+                Row row = sheet.createRow(rowNum++);
+                int col = 0;
+                row.createCell(col++).setCellValue(s.getId());
+                row.createCell(col++).setCellValue(s.getName());
+                row.createCell(col++).setCellValue(s.getLockStrategy().name());
+                row.createCell(col++).setCellValue(s.isVirtualThread() ? "Virtual" : "Platform");
+                row.createCell(col++).setCellValue(s.getAudienceDistributionStrategy().name());
+                row.createCell(col++).setCellValue(s.getSeatSettingStrategy().name());
+                row.createCell(col++).setCellValue(s.getMaxRow() + "×" + s.getMaxCol());
+                row.createCell(col++).setCellValue(s.getAudienceCount());
+                row.createCell(col++).setCellValue(s.getStatus().name());
+                row.createCell(col++).setCellValue(s.getTotalTps());
+                row.createCell(col++).setCellValue(s.getAvgResponseMs());
+                row.createCell(col++).setCellValue(s.getP90ResponseMs());
+                row.createCell(col++).setCellValue(s.getP95ResponseMs());
+                row.createCell(col++).setCellValue(s.getHoldsTotal());
+                row.createCell(col++).setCellValue(s.getHoldsSuccess());
+                row.createCell(col++).setCellValue(s.getDuplicateHoldCount());
+                row.createCell(col++).setCellValue(s.getLockConflict());
+                row.createCell(col++).setCellValue(s.getLockTimeout());
+                row.createCell(col++).setCellValue(s.getFullySatisfiedCount());
+                row.createCell(col++).setCellValue(s.getPartiallySatisfiedCount());
+                row.createCell(col++).setCellValue(s.getUnsatisfiedCount());
+                row.createCell(col++).setCellValue(s.getStartedAt() != null ? DT_FMT.format(s.getStartedAt()) : "");
+                row.createCell(col).setCellValue(s.getFinishedAt() != null ? DT_FMT.format(s.getFinishedAt()) : "");
+            }
+
+            for (int i = 0; i < HEADERS.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            wb.write(out);
+            return out.toByteArray();
+        }
+    }
 }

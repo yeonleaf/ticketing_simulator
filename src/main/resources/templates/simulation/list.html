@@ -7,7 +7,10 @@
 <div layout:fragment="content">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h4 class="mb-0">시뮬레이션 목록</h4>
-        <a href="/simulations/new" class="btn btn-primary">+ 새 시뮬레이션</a>
+        <div class="d-flex gap-2">
+            <button id="btnExport" class="btn btn-success" disabled onclick="exportSelected()">엑셀 Export</button>
+            <a href="/simulations/new" class="btn btn-primary">+ 새 시뮬레이션</a>
+        </div>
     </div>
 
     <div class="card">
@@ -15,6 +18,7 @@
             <table class="table table-hover mb-0">
                 <thead class="table-dark">
                     <tr>
+                        <th><input type="checkbox" id="checkAll" title="전체 선택"></th>
                         <th>ID</th>
                         <th>이름</th>
                         <th>락 전략</th>
@@ -28,10 +32,13 @@
                 </thead>
                 <tbody>
                     <tr th:if="${#lists.isEmpty(simulations)}">
-                        <td colspan="9" class="text-center text-muted py-4">등록된 시뮬레이션이 없습니다.</td>
+                        <td colspan="10" class="text-center text-muted py-4">등록된 시뮬레이션이 없습니다.</td>
                     </tr>
                     <tr th:each="sim : ${simulations}"
                         th:onclick="|location.href='/simulations/${sim.id}/run'|">
+                        <td onclick="event.stopPropagation()">
+                            <input type="checkbox" class="sim-checkbox" th:value="${sim.id}" onchange="updateExportBtn()">
+                        </td>
                         <td th:text="${sim.id}"></td>
                         <td th:text="${sim.name}"></td>
                         <td>
@@ -82,6 +89,28 @@
         fetch('/api/simulations/' + id + '/interrupt', { method: 'POST' })
             .then(() => location.reload())
             .catch(err => alert('중지 요청 실패: ' + err));
+    }
+
+    document.getElementById('checkAll').addEventListener('change', function () {
+        document.querySelectorAll('.sim-checkbox').forEach(cb => cb.checked = this.checked);
+        updateExportBtn();
+    });
+
+    function updateExportBtn() {
+        const any = document.querySelectorAll('.sim-checkbox:checked').length > 0;
+        document.getElementById('btnExport').disabled = !any;
+        // checkAll 상태 동기화
+        const all = document.querySelectorAll('.sim-checkbox');
+        const checked = document.querySelectorAll('.sim-checkbox:checked');
+        document.getElementById('checkAll').indeterminate = checked.length > 0 && checked.length < all.length;
+        document.getElementById('checkAll').checked = all.length > 0 && checked.length === all.length;
+    }
+
+    function exportSelected() {
+        const ids = [...document.querySelectorAll('.sim-checkbox:checked')].map(cb => cb.value);
+        if (ids.length === 0) return;
+        const params = ids.map(id => 'ids=' + id).join('&');
+        window.location.href = '/api/simulations/export?' + params;
     }
     </script>
 </div>
