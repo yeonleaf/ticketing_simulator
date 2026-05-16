@@ -123,7 +123,7 @@ export function handleSummary(data) {
         const infraFails = infraCheck.fails;
         const total = infraPasses + infraFails;
         const errorRate = total > 0 ? infraPasses / total : 0;
-        http.patch(`${BASE_URL}/api/simulations/${SIM_ID}/fail`,
+        http.post(`${BASE_URL}/api/simulations/${SIM_ID}/fail`,
             JSON.stringify({
                 message: `infra_error detected: ${infraPasses} errors out of ${infraPasses + infraFails} requests (${(errorRate * 100).toFixed(1)}%)`
             }), { headers });
