@@ -3,6 +3,8 @@ package com.ticketing.domain.seat;
 import com.ticketing.domain.simulation.Simulation;
 import com.ticketing.domain.simulation.SimulationService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,6 +14,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SeatController {
 
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final PessimisticSeatLockService pessimisticSeatLockService;
     private final OptimisticSeatLockService optimisticSeatLockService;
     private final RedisSeatLockService redisSeatLockService;
@@ -45,7 +48,9 @@ public class SeatController {
             case OPTIMISTIC -> optimisticSeatLockService;
             case REDIS_REDISSON -> redisSeatLockService;
         };
-        return ResponseEntity.ok(seatService.hold(seatId, request.audienceId()));
+        SeatHoldResult result = seatService.hold(seatId, request.audienceId());
+        log.info("Seat hold result: {}", result);
+        return ResponseEntity.ok(result);
     }
 
     public record HoldRequest(Long audienceId, Long simulationId) {}
