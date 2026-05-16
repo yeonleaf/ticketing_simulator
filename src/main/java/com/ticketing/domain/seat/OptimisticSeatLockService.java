@@ -54,7 +54,10 @@ public class OptimisticSeatLockService implements SeatLockService {
 
                 Seat seat = seatRepository.findById(seatId)
                         .orElse(null);
-                if (seat == null) return new SeatHoldResultWrapper(SeatHoldResult.SEAT_NOT_FOUND, null);
+                if (seat == null) {
+                    log.info(String.format("Seat with id %s not found", seatId));
+                    return new SeatHoldResultWrapper(SeatHoldResult.SEAT_NOT_FOUND, null);
+                }
                 if (!seat.isAvailable())
                     return new SeatHoldResultWrapper(SeatHoldResult.ALREADY_HELD, seat.getSimulationId());
 

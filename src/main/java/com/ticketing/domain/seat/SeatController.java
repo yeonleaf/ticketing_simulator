@@ -49,7 +49,6 @@ public class SeatController {
             case REDIS_REDISSON -> redisSeatLockService;
         };
         SeatHoldResult result = seatService.hold(seatId, request.audienceId());
-        log.info("Seat hold result: {}", result);
         return ResponseEntity.ok(result);
     }
 
