@@ -128,6 +128,42 @@
         </div>
     </div>
 
+    <!-- Hold 상세 지표 -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Hold 총 시도</div>
+                    <div id="cardHoldsTotal" class="fs-3 fw-bold">-</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100 border-success">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Hold 성공</div>
+                    <div id="cardHoldsSuccess" class="fs-3 fw-bold text-success">-</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100 border-warning">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Lock 충돌</div>
+                    <div id="cardLockConflict" class="fs-3 fw-bold text-warning">-</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100 border-danger">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Lock 타임아웃</div>
+                    <div id="cardLockTimeout" class="fs-3 fw-bold text-danger">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 만족도 지표 -->
     <div class="row g-3 mb-4">
         <div class="col-md-4">
@@ -193,6 +229,10 @@
         document.getElementById('cardDuplicate').textContent     = done ? (sim.duplicateHoldCount ?? 0) : '-';
         document.getElementById('cardP90').textContent           = done ? (sim.p90ResponseMs ?? 0) : '-';
         document.getElementById('cardP95').textContent           = done ? (sim.p95ResponseMs ?? 0) : '-';
+        document.getElementById('cardHoldsTotal').textContent    = done ? (sim.holdsTotal ?? 0) : '-';
+        document.getElementById('cardHoldsSuccess').textContent  = done ? (sim.holdsSuccess ?? 0) : '-';
+        document.getElementById('cardLockConflict').textContent  = done ? (sim.lockConflict ?? 0) : '-';
+        document.getElementById('cardLockTimeout').textContent   = done ? (sim.lockTimeout ?? 0) : '-';
         document.getElementById('cardFullySatisfied').textContent    = done ? (sim.fullySatisfiedCount ?? 0) : '-';
         document.getElementById('cardPartiallySatisfied').textContent = done ? (sim.partiallySatisfiedCount ?? 0) : '-';
         document.getElementById('cardUnsatisfied').textContent   = done ? (sim.unsatisfiedCount ?? 0) : '-';

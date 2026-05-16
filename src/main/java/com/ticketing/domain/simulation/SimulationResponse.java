@@ -27,6 +27,10 @@ public class SimulationResponse {
     private long p90ResponseMs;
     private long p95ResponseMs;
     private int duplicateHoldCount;
+    private long holdsTotal;
+    private long holdsSuccess;
+    private long lockConflict;
+    private long lockTimeout;
     private int fullySatisfiedCount;
     private int partiallySatisfiedCount;
     private int unsatisfiedCount;
@@ -44,6 +48,10 @@ public class SimulationResponse {
         this.p90ResponseMs = simulation.getP90ResponseMs();
         this.p95ResponseMs = simulation.getP95ResponseMs();
         this.duplicateHoldCount = simulation.getDuplicateHoldCount();
+        this.holdsTotal = simulation.getHoldsTotal();
+        this.holdsSuccess = simulation.getHoldsSuccess();
+        this.lockConflict = simulation.getLockConflict();
+        this.lockTimeout = simulation.getLockTimeout();
         this.fullySatisfiedCount = simulation.getFullySatisfiedCount();
         this.partiallySatisfiedCount = simulation.getPartiallySatisfiedCount();
         this.unsatisfiedCount = simulation.getUnsatisfiedCount();
