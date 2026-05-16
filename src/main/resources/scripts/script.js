@@ -16,6 +16,10 @@ export const options = {
 const BASE_URL = __ENV.BASE_URL;
 const SIM_ID = __ENV.SIM_ID;
 const duplicateHoldCounter = new Counter('duplicate_holds');
+const holdsTotalCounter = new Counter('holds_total');
+const holdsSuccessCounter = new Counter('holds_success');
+const lockConflictCounter = new Counter('lock_conflict');
+const lockTimeoutCounter = new Counter('lock_timeout');
 
 export function setup() {
     const headers = { 'Content-Type': 'application/json' };
@@ -40,6 +44,7 @@ export default function(data) {
                     audienceId: audience.id,
                 }), { headers: headers })
         const res = raw.body
+        holdsTotalCounter.add(1);
         check(res, {
             'valid_response': (b) =>
                 b === '"SUCCESS"' || b === '"ALREADY_HELD"',
@@ -52,11 +57,18 @@ export default function(data) {
                 b !== '"LOCK_TIMEOUT"' &&
                 b !== '"LOCK_CONFLICT"',
         });
-        if (res == "\"SUCCESS\"") {
+        if (res === '"SUCCESS"') {
             held = true;
+            holdsSuccessCounter.add(1);
         }
         if (res === '"ALREADY_HELD"') {
             duplicateHoldCounter.add(1);
+        }
+        if (res === '"LOCK_CONFLICT"') {
+            lockConflictCounter.add(1);
+        }
+        if (res === '"LOCK_TIMEOUT"') {
+            lockTimeoutCounter.add(1);
         }
     }
 
@@ -80,6 +92,7 @@ export default function(data) {
         }), { headers });
 
         const res = raw.body;
+        holdsTotalCounter.add(1);
         check(res, {
             'valid_response': (b) =>
                 b === '"SUCCESS"' || b === '"ALREADY_HELD"',
@@ -93,11 +106,18 @@ export default function(data) {
                 b !== '"LOCK_CONFLICT"',
         });
 
-        if (res == "\"SUCCESS\"") {
+        if (res === '"SUCCESS"') {
             held = true;
+            holdsSuccessCounter.add(1);
         }
         if (res === '"ALREADY_HELD"') {
             duplicateHoldCounter.add(1);
+        }
+        if (res === '"LOCK_CONFLICT"') {
+            lockConflictCounter.add(1);
+        }
+        if (res === '"LOCK_TIMEOUT"') {
+            lockTimeoutCounter.add(1);
         }
         retry++;
     }
@@ -112,6 +132,18 @@ export function handleSummary(data) {
 
     const duplicateHoldCount = data.metrics.duplicate_holds
         ? data.metrics.duplicate_holds.values.count
+        : 0;
+    const holdsTotal = data.metrics.holds_total
+        ? data.metrics.holds_total.values.count
+        : 0;
+    const holdsSuccess = data.metrics.holds_success
+        ? data.metrics.holds_success.values.count
+        : 0;
+    const lockConflict = data.metrics.lock_conflict
+        ? data.metrics.lock_conflict.values.count
+        : 0;
+    const lockTimeout = data.metrics.lock_timeout
+        ? data.metrics.lock_timeout.values.count
         : 0;
 
     const checks = data.root_group.checks;
@@ -131,6 +163,10 @@ export function handleSummary(data) {
         http.post(`${BASE_URL}/api/simulations/${SIM_ID}/finish`,
             JSON.stringify({
                 duplicateHoldCount,
+                holdsTotal,
+                holdsSuccess,
+                lockConflict,
+                lockTimeout,
                 totalTps,
                 avgResponseMs,
                 p90ResponseMs,

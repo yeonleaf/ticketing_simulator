@@ -32,13 +32,13 @@ public class SimulationStatusService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public Simulation updateSimulationStatusFinish(Long simulationId, double totalTps, long avgResponseMs, long p90ResponseMs, long p95ResponseMs, int duplicateHoldCount, int fullySatisfiedCount, int partiallySatisfiedCount, int unsatisfiedCount) {
+    public Simulation updateSimulationStatusFinish(Long simulationId, double totalTps, long avgResponseMs, long p90ResponseMs, long p95ResponseMs, int duplicateHoldCount, long holdsTotal, long holdsSuccess, long lockConflict, long lockTimeout, int fullySatisfiedCount, int partiallySatisfiedCount, int unsatisfiedCount) {
         log.info("[Simulation {}] 종료합니다.", simulationId);
         Simulation simulation = simulationRepository.findById(simulationId).orElse(null);
         if (simulation == null) {
             throw new RuntimeException("잘못된 시뮬레이션 ID입니다.");
         }
-        simulation.finish(totalTps, avgResponseMs, p90ResponseMs, p95ResponseMs, duplicateHoldCount, fullySatisfiedCount, partiallySatisfiedCount, unsatisfiedCount);
+        simulation.finish(totalTps, avgResponseMs, p90ResponseMs, p95ResponseMs, duplicateHoldCount, holdsTotal, holdsSuccess, lockConflict, lockTimeout, fullySatisfiedCount, partiallySatisfiedCount, unsatisfiedCount);
         return simulationRepository.save(simulation);
     }
 

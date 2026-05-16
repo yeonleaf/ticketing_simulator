@@ -114,7 +114,7 @@ public class SimulationController {
         return ResponseEntity.ok(simulationService.getSimulation(id));
     }
 
-    public record FinishRequest(int duplicateHoldCount, Long totalTps, Long avgResponseMs, Long p90ResponseMs, Long p95ResponseMs) {}
+    public record FinishRequest(int duplicateHoldCount, long holdsTotal, long holdsSuccess, long lockConflict, long lockTimeout, Long totalTps, Long avgResponseMs, Long p90ResponseMs, Long p95ResponseMs) {}
 
     @GetMapping("/api/simulations/{id}/seats/available")
     public ResponseEntity<List<SeatResponse>> getSeatsAvailable(@PathVariable Long id) {

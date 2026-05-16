@@ -60,6 +60,11 @@ public class Simulation {
 
     private int duplicateHoldCount;
 
+    private long holdsTotal;
+    private long holdsSuccess;
+    private long lockConflict;
+    private long lockTimeout;
+
     @Column(columnDefinition = "TEXT")
     private String failReason;
 
@@ -101,7 +106,7 @@ public class Simulation {
         this.startedAt = Instant.now();
     }
 
-    public void finish(double totalTps, long avgResponseMs, long p90ResponseMs, long p95ResponseMs, int duplicateHoldCount, int fullySatisfiedCount, int partiallySatisfiedCount, int unsatisfiedCount) {
+    public void finish(double totalTps, long avgResponseMs, long p90ResponseMs, long p95ResponseMs, int duplicateHoldCount, long holdsTotal, long holdsSuccess, long lockConflict, long lockTimeout, int fullySatisfiedCount, int partiallySatisfiedCount, int unsatisfiedCount) {
         this.status = SimStatus.DONE;
         this.finishedAt = Instant.now();
         this.totalTps = totalTps;
@@ -109,6 +114,10 @@ public class Simulation {
         this.p90ResponseMs = p90ResponseMs;
         this.p95ResponseMs = p95ResponseMs;
         this.duplicateHoldCount = duplicateHoldCount;
+        this.holdsTotal = holdsTotal;
+        this.holdsSuccess = holdsSuccess;
+        this.lockConflict = lockConflict;
+        this.lockTimeout = lockTimeout;
         this.fullySatisfiedCount = fullySatisfiedCount;
         this.partiallySatisfiedCount = partiallySatisfiedCount;
         this.unsatisfiedCount = unsatisfiedCount;
