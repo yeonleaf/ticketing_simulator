@@ -192,6 +192,62 @@
         </div>
     </div>
 
+    <!-- 사용자 트랜잭션 지표 -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card text-center h-100 border-success">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">사용자 완전 성공</div>
+                    <div id="cardUserFullSuccess" class="fs-3 fw-bold text-success">-</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center h-100 border-warning">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">사용자 롤백</div>
+                    <div id="cardUserRollback" class="fs-3 fw-bold text-warning">-</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center h-100 border-danger">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">사용자 완전 실패</div>
+                    <div id="cardUserTotalFail" class="fs-3 fw-bold text-danger">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 좌석 Release 지표 -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card text-center h-100 border-info">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">롤백된 좌석 수</div>
+                    <div id="cardSeatsRolledBack" class="fs-3 fw-bold text-info">-</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center h-100 border-success">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Release 성공</div>
+                    <div id="cardReleaseSuccess" class="fs-3 fw-bold text-success">-</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center h-100 border-danger">
+                <div class="card-body">
+                    <div class="text-muted small mb-1">Release 실패</div>
+                    <div id="cardReleaseFail" class="fs-3 fw-bold text-danger">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 실패 사유 -->
     <div id="failAlert" class="alert alert-danger d-none mb-4"></div>
 
@@ -236,6 +292,12 @@
         document.getElementById('cardFullySatisfied').textContent    = done ? (sim.fullySatisfiedCount ?? 0) : '-';
         document.getElementById('cardPartiallySatisfied').textContent = done ? (sim.partiallySatisfiedCount ?? 0) : '-';
         document.getElementById('cardUnsatisfied').textContent   = done ? (sim.unsatisfiedCount ?? 0) : '-';
+        document.getElementById('cardUserFullSuccess').textContent   = done ? (sim.userFullSuccess ?? 0) : '-';
+        document.getElementById('cardUserRollback').textContent      = done ? (sim.userRollback ?? 0) : '-';
+        document.getElementById('cardUserTotalFail').textContent     = done ? (sim.userTotalFail ?? 0) : '-';
+        document.getElementById('cardSeatsRolledBack').textContent   = done ? (sim.seatsRolledBack ?? 0) : '-';
+        document.getElementById('cardReleaseSuccess').textContent    = done ? (sim.releaseSuccess ?? 0) : '-';
+        document.getElementById('cardReleaseFail').textContent       = done ? (sim.releaseFail ?? 0) : '-';
 
         const failAlert = document.getElementById('failAlert');
         if (sim.status === 'FAIL' && sim.failReason) {
