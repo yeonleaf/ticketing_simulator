@@ -29,12 +29,18 @@ public class RedisSeatLockService implements SeatLockService {
 
     @Override
     public SeatHoldResult hold(Long seatId, Long audienceId) {
+        log.debug("[Redis Hold 시작] seatId={}, audienceId={}", seatId, audienceId);
         RLock lock = redissonClient.getLock("seat:lock:" + seatId);
         try {
+            log.debug("[Redis Hold] 분산 락 획득 시도 - seatId={}", seatId);
             boolean acquired = lock.tryLock(5, 30, TimeUnit.SECONDS);
-            if (!acquired) return SeatHoldResult.LOCK_TIMEOUT;
+            if (!acquired) {
+                log.warn("[Redis Hold 실패] 락 타임아웃 - seatId={}", seatId);
+                return SeatHoldResult.LOCK_TIMEOUT;
+            }
 
             try {
+                log.debug("[Redis Hold] 분산 락 획득 성공, 내부 트랜잭션 시작 - seatId={}", seatId);
                 SeatHoldResultWrapper resultWrapper = internalService.doHold(seatId, audienceId);
 
 //                if (resultWrapper.getSeatHoldResult() == SeatHoldResult.SUCCESS) {
@@ -56,10 +62,12 @@ public class RedisSeatLockService implements SeatLockService {
 //                    }
 //                }
 
+                log.debug("[Redis Hold] 내부 트랜잭션 완료, 분산 락 해제 - seatId={}, result={}", seatId, resultWrapper.getSeatHoldResult());
                 return resultWrapper.getSeatHoldResult();
             } finally {
                 if (lock.isHeldByCurrentThread()) {
                     lock.unlock();  // 커밋 이후에 락 해제
+                    log.debug("[Redis Hold] 분산 락 해제 완료 - seatId={}", seatId);
                 }
             }
         } catch (InterruptedException e) {
@@ -78,17 +86,25 @@ public class RedisSeatLockService implements SeatLockService {
 
     @Override
     public SeatReleaseResult release(Long seatId, Long audienceId) {
+        log.debug("[Redis Release 시작] seatId={}, audienceId={}", seatId, audienceId);
         RLock lock = redissonClient.getLock("seat:lock:" + seatId);
         try {
+            log.debug("[Redis Release] 분산 락 획득 시도 - seatId={}", seatId);
             boolean acquired = lock.tryLock(5, 30, TimeUnit.SECONDS);
-            if (!acquired) return SeatReleaseResult.LOCK_TIMEOUT;
+            if (!acquired) {
+                log.warn("[Redis Release 실패] 락 타임아웃 - seatId={}", seatId);
+                return SeatReleaseResult.LOCK_TIMEOUT;
+            }
 
             try {
+                log.debug("[Redis Release] 분산 락 획득 성공, 내부 트랜잭션 시작 - seatId={}", seatId);
                 SeatReleaseResultWrapper resultWrapper = internalService.doRelease(seatId, audienceId);
+                log.debug("[Redis Release] 내부 트랜잭션 완료, 분산 락 해제 - seatId={}, result={}", seatId, resultWrapper.getSeatReleaseResult());
                 return resultWrapper.getSeatReleaseResult();
             } finally {
                 if (lock.isHeldByCurrentThread()) {
                     lock.unlock();  // 커밋 이후에 락 해제
+                    log.debug("[Redis Release] 분산 락 해제 완료 - seatId={}", seatId);
                 }
             }
         } catch (InterruptedException e) {

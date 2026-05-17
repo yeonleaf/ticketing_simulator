@@ -44,22 +44,29 @@ public class OptimisticSeatLockService implements SeatLockService {
     }
 
     public SeatHoldResult hold(Long seatId, Long audienceId) {
+        log.debug("[Optimistic Hold 시작] seatId={}, audienceId={}", seatId, audienceId);
         try {
             // TransactionTemplate: 예외 발생 시 트랜잭션을 rollback 후 re-throw
             // → 트랜잭션 경계 밖에서 예외를 catch하므로 UnexpectedRollbackException 없음
             SeatHoldResultWrapper resultWrapper = transactionTemplate.execute(status -> {
+                log.debug("[Optimistic Hold Tx 시작] seatId={}, audienceId={}", seatId, audienceId);
                 Audience audience = audienceRepository.findById(audienceId)
                         .orElse(null);
-                if (audience == null) return new SeatHoldResultWrapper(SeatHoldResult.AUDIENCE_NOT_FOUND, null);
+                if (audience == null) {
+                    log.warn("[Optimistic Hold 실패] Audience not found - audienceId={}", audienceId);
+                    return new SeatHoldResultWrapper(SeatHoldResult.AUDIENCE_NOT_FOUND, null);
+                }
 
                 Seat seat = seatRepository.findById(seatId)
                         .orElse(null);
                 if (seat == null) {
-                    log.info(String.format("Seat with id %s not found", seatId));
+                    log.warn("[Optimistic Hold 실패] Seat not found - seatId={}", seatId);
                     return new SeatHoldResultWrapper(SeatHoldResult.SEAT_NOT_FOUND, null);
                 }
-                if (!seat.isAvailable())
+                if (!seat.isAvailable()) {
+                    log.debug("[Optimistic Hold 실패] 이미 선점된 좌석 - seatId={}", seatId);
                     return new SeatHoldResultWrapper(SeatHoldResult.ALREADY_HELD, seat.getSimulationId());
+                }
 
                 int affected = seatRepository.updateIfVersionMatches(
                         seat.getId(),
@@ -68,14 +75,16 @@ public class OptimisticSeatLockService implements SeatLockService {
                         audienceId
                 );
 
-                log.info("UPDATE attempt: seatId={}, version={}, status={}, affected={}",
-                        seat.getId(), seat.getVersion(), SeatStatus.HELD.name(), affected);
+                log.debug("[Optimistic Hold] UPDATE 시도: seatId={}, version={}, affected={}",
+                        seat.getId(), seat.getVersion(), affected);
 
                 if (affected == 0) {
+                    log.debug("[Optimistic Hold 실패] 버전 충돌 - seatId={}", seatId);
                     return new SeatHoldResultWrapper(SeatHoldResult.LOCK_CONFLICT, seat.getSimulationId());
                 }
 
                 audienceRepository.insertAcquiredSeat(audienceId, seat.getId());
+                log.debug("[Optimistic Hold Tx 완료] seatId={}, audienceId={}", seatId, audienceId);
                 return new SeatHoldResultWrapper(SeatHoldResult.SUCCESS, seat.getSimulationId());
             });
 
@@ -119,16 +128,21 @@ public class OptimisticSeatLockService implements SeatLockService {
 
     @Override
     public SeatReleaseResult release(Long seatId, Long audienceId) {
+        log.debug("[Optimistic Release 시작] seatId={}, audienceId={}", seatId, audienceId);
         try {
             SeatReleaseResultWrapper resultWrapper = transactionTemplate.execute(status -> {
+                log.debug("[Optimistic Release Tx 시작] seatId={}, audienceId={}", seatId, audienceId);
                 Audience audience = audienceRepository.findById(audienceId)
                         .orElse(null);
-                if (audience == null) return new SeatReleaseResultWrapper(SeatReleaseResult.AUDIENCE_NOT_FOUND, null);
+                if (audience == null) {
+                    log.warn("[Optimistic Release 실패] Audience not found - audienceId={}", audienceId);
+                    return new SeatReleaseResultWrapper(SeatReleaseResult.AUDIENCE_NOT_FOUND, null);
+                }
 
                 Seat seat = seatRepository.findById(seatId)
                         .orElse(null);
                 if (seat == null) {
-                    log.info(String.format("Seat with id %s not found", seatId));
+                    log.warn("[Optimistic Release 실패] Seat not found - seatId={}", seatId);
                     return new SeatReleaseResultWrapper(SeatReleaseResult.SEAT_NOT_FOUND, null);
                 }
                 int affected = seatRepository.updateIfVersionMatches(
@@ -137,14 +151,16 @@ public class OptimisticSeatLockService implements SeatLockService {
                         SeatStatus.AVAILABLE.name(),
                         audienceId
                 );
-                log.info("UPDATE attempt: seatId={}, version={}, status={}, affected={}",
-                        seat.getId(), seat.getVersion(), SeatStatus.AVAILABLE.name(), affected);
+                log.debug("[Optimistic Release] UPDATE 시도: seatId={}, version={}, affected={}",
+                        seat.getId(), seat.getVersion(), affected);
 
                 if (affected == 0) {
+                    log.debug("[Optimistic Release 실패] 버전 충돌 - seatId={}", seatId);
                     return new SeatReleaseResultWrapper(SeatReleaseResult.LOCK_CONFLICT, seat.getSimulationId());
                 }
 
                 audienceRepository.deleteAcquiredSeat(audienceId, seat.getId());
+                log.debug("[Optimistic Release Tx 완료] seatId={}, audienceId={}", seatId, audienceId);
                 return new SeatReleaseResultWrapper(SeatReleaseResult.SUCCESS, seat.getSimulationId());
             });
 

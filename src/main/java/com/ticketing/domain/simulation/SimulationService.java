@@ -46,6 +46,11 @@ public class SimulationService {
      */
     @Transactional
     public SimulationResponse createSimulation(SimulationRequest request) {
+        log.info("=== [Simulation 생성 시작] ===");
+        log.info("요청 정보: maxRow={}, maxCol={}, audienceCount={}, lockStrategy={}, seatSettingStrategy={}, audienceDistribution={}",
+                request.getMaxRow(), request.getMaxCol(), request.getAudienceCount(),
+                request.getLockStrategy(), request.getSeatSettingStrategy(), request.getAudienceDistributionStrategy());
+
         // Simulation 저장
         Simulation simulation = new Simulation(request);
         simulation.setVirtualThread(virtualThreadEnabled);
@@ -75,6 +80,8 @@ public class SimulationService {
         });
         audienceRepository.saveAll(audiences);
 
+        log.info("=== [Simulation 생성 완료] simulationId={}, 좌석 {}개, 관객 {}명 ===",
+                simulation.getId(), seats.size(), audiences.size());
         return new SimulationResponse(simulation, audiences, seats);
     }
 
@@ -88,15 +95,22 @@ public class SimulationService {
     }
 
     public SimulationResponse startSimulation(Long simulationId) {
+        log.info("=== [Simulation 시작] simulationId={} ===", simulationId);
         Simulation simulation = simulationRepository.findById(simulationId).orElseThrow(() -> new IllegalArgumentException("Simulation not found: " + simulationId));
         simulation.start();
         List<Audience> audiences = audienceRepository.findAllBySimulationId(simulationId);
         List<Seat> seats = seatRepository.findAllBySimulationId(simulationId);
         Simulation updatedSimulation = simulationRepository.save(simulation);
+        log.info("=== [Simulation 시작 완료] simulationId={}, status={} ===", simulationId, updatedSimulation.getStatus());
         return new SimulationResponse(updatedSimulation, audiences, seats);
     }
     
     public SimulationResponse finishSimulation(Long simulationId, SimulationController.FinishRequest request) {
+        log.info("=== [Simulation 종료 시작] simulationId={} ===", simulationId);
+        log.info("메트릭 집계: holdsTotal={}, holdsSuccess={}, lockConflict={}, lockTimeout={}, userFullSuccess={}, userRollback={}, releaseSuccess={}",
+                request.holdsTotal(), request.holdsSuccess(), request.lockConflict(), request.lockTimeout(),
+                request.userFullSuccess(), request.userRollback(), request.releaseSuccess());
+
         simulationRepository.findById(simulationId).orElseThrow(() -> new IllegalArgumentException("Simulation not found: " + simulationId));
         List<Audience> audiences = audienceService.getAudiencesBySimulationId(simulationId);
 
@@ -118,7 +132,12 @@ public class SimulationService {
 
         List<Seat> seats = seatRepository.findAllBySimulationId(simulationId);
 
-        return new SimulationResponse(simulationStatusService.updateSimulationStatusFinish(simulationId, request.totalTps(), request.avgResponseMs(), request.p90ResponseMs() != null ? request.p90ResponseMs() : 0L, request.p95ResponseMs() != null ? request.p95ResponseMs() : 0L, request.duplicateHoldCount(), request.holdsTotal(), request.holdsSuccess(), request.lockConflict(), request.lockTimeout(), fullySatisfiedCount, partiallySatisfiedCount, unsatisfiedCount, (int) request.userFullSuccess(), (int) request.userRollback(), (int) request.userTotalFail(), (int) request.seatsRolledBack(), (int) request.releaseSuccess(), (int) request.releaseFail()), audiences, seats);
+        log.info("관객 만족도 집계: 완전만족={}, 부분만족={}, 미충족={}", fullySatisfiedCount, partiallySatisfiedCount, unsatisfiedCount);
+
+        Simulation finishedSimulation = simulationStatusService.updateSimulationStatusFinish(simulationId, request.totalTps(), request.avgResponseMs(), request.p90ResponseMs() != null ? request.p90ResponseMs() : 0L, request.p95ResponseMs() != null ? request.p95ResponseMs() : 0L, request.duplicateHoldCount(), request.holdsTotal(), request.holdsSuccess(), request.lockConflict(), request.lockTimeout(), fullySatisfiedCount, partiallySatisfiedCount, unsatisfiedCount, (int) request.userFullSuccess(), (int) request.userRollback(), (int) request.userTotalFail(), (int) request.seatsRolledBack(), (int) request.releaseSuccess(), (int) request.releaseFail());
+
+        log.info("=== [Simulation 종료 완료] simulationId={}, status={} ===", simulationId, finishedSimulation.getStatus());
+        return new SimulationResponse(finishedSimulation, audiences, seats);
 
     }
 

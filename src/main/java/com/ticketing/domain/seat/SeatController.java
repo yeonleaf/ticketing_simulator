@@ -42,6 +42,7 @@ public class SeatController {
      */
     @PostMapping("/api/seats/{seatId}/hold")
     public ResponseEntity<SeatHoldResult> holdSeat(@PathVariable Long seatId, @RequestBody HoldRequest request) {
+        log.debug("[Hold 요청] seatId={}, audienceId={}, simulationId={}", seatId, request.audienceId(), request.simulationId());
         Simulation simulation = simulationService.getSimulation(request.simulationId());
         SeatLockService seatService = switch (simulation.getLockStrategy()) {
             case PESSIMISTIC -> pessimisticSeatLockService;
@@ -49,13 +50,15 @@ public class SeatController {
             case REDIS_REDISSON -> redisSeatLockService;
         };
         SeatHoldResult result = seatService.hold(seatId, request.audienceId());
+        log.info("[Hold 결과] seatId={}, audienceId={}, result={}", seatId, request.audienceId(), result);
         return ResponseEntity.ok(result);
     }
 
     public record HoldRequest(Long audienceId, Long simulationId) {}
 
     @PostMapping("/api/seats/{seatId}/release")
-    public ResponseEntity<SeatReleaseResult> releaseResult(@PathVariable Long seatId, @RequestBody ReleaseRequest request) {
+    public ResponseEntity<SeatReleaseResult> releaseSeat(@PathVariable Long seatId, @RequestBody ReleaseRequest request) {
+        log.debug("[Release 요청] seatId={}, audienceId={}, simulationId={}", seatId, request.audienceId, request.simulationId());
         Simulation simulation = simulationService.getSimulation(request.simulationId());
         SeatLockService seatService = switch (simulation.getLockStrategy()) {
             case PESSIMISTIC -> pessimisticSeatLockService;
@@ -63,6 +66,7 @@ public class SeatController {
             case REDIS_REDISSON -> redisSeatLockService;
         };
         SeatReleaseResult result = seatService.release(seatId, request.audienceId);
+        log.info("[Release 결과] seatId={}, audienceId={}, result={}", seatId, request.audienceId, result);
         return ResponseEntity.ok(result);
     }
     public record ReleaseRequest(Long audienceId, Long simulationId) {}

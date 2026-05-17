@@ -28,21 +28,34 @@ public class RedisSeatLockInternalService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public SeatHoldResultWrapper doHold(Long seatId, Long audienceId) {
+        log.debug("[Redis Hold Tx 시작] seatId={}, audienceId={}", seatId, audienceId);
+
         Audience audience = audienceRepository.findById(audienceId)
                 .orElse(null);
-        if (audience == null) return new SeatHoldResultWrapper(SeatHoldResult.FAIL, null);
+        if (audience == null) {
+            log.warn("[Redis Hold 실패] Audience not found - audienceId={}", audienceId);
+            return new SeatHoldResultWrapper(SeatHoldResult.FAIL, null);
+        }
 
         Seat seat = seatRepository.findById(seatId)
                 .orElse(null);
-        if (seat == null) return new SeatHoldResultWrapper(SeatHoldResult.FAIL, null);
-        if (!seat.isAvailable()) return new SeatHoldResultWrapper(SeatHoldResult.ALREADY_HELD, seat.getSimulationId());
+        if (seat == null) {
+            log.warn("[Redis Hold 실패] Seat not found - seatId={}", seatId);
+            return new SeatHoldResultWrapper(SeatHoldResult.FAIL, null);
+        }
+        if (!seat.isAvailable()) {
+            log.debug("[Redis Hold 실패] 이미 선점된 좌석 - seatId={}", seatId);
+            return new SeatHoldResultWrapper(SeatHoldResult.ALREADY_HELD, seat.getSimulationId());
+        }
 
         seat.hold(audienceId);
         seatRepository.save(seat);
+        log.debug("[Redis Hold] 좌석 선점 완료 - seatId={}, audienceId={}", seatId, audienceId);
 
         audience.addAcquiredSeat(seatId);
         audienceRepository.save(audience);
 
+        log.debug("[Redis Hold Tx 완료] seatId={}, audienceId={}", seatId, audienceId);
         return new SeatHoldResultWrapper(SeatHoldResult.SUCCESS, seat.getSimulationId());
     }
 
@@ -54,19 +67,33 @@ public class RedisSeatLockInternalService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public SeatReleaseResultWrapper doRelease(Long seatId, Long audienceId) {
+        log.debug("[Redis Release Tx 시작] seatId={}, audienceId={}", seatId, audienceId);
+
         Audience audience = audienceRepository.findById(audienceId)
                 .orElse(null);
-        if (audience == null) return new SeatReleaseResultWrapper(SeatReleaseResult.AUDIENCE_NOT_FOUND, null);
+        if (audience == null) {
+            log.warn("[Redis Release 실패] Audience not found - audienceId={}", audienceId);
+            return new SeatReleaseResultWrapper(SeatReleaseResult.AUDIENCE_NOT_FOUND, null);
+        }
 
         Seat seat = seatRepository.findById(seatId)
                 .orElse(null);
-        if (seat == null) return new SeatReleaseResultWrapper(SeatReleaseResult.SEAT_NOT_FOUND, null);
-        if (seat.isAvailable() || !seat.getHolderId().equals(audienceId)) return new SeatReleaseResultWrapper(SeatReleaseResult.NOT_HELD_BY_YOU, seat.getSimulationId());
+        if (seat == null) {
+            log.warn("[Redis Release 실패] Seat not found - seatId={}", seatId);
+            return new SeatReleaseResultWrapper(SeatReleaseResult.SEAT_NOT_FOUND, null);
+        }
+        if (seat.isAvailable() || !seat.getHolderId().equals(audienceId)) {
+            log.warn("[Redis Release 실패] 본인이 선점한 좌석이 아님 - seatId={}, audienceId={}, currentHolderId={}",
+                    seatId, audienceId, seat.getHolderId());
+            return new SeatReleaseResultWrapper(SeatReleaseResult.NOT_HELD_BY_YOU, seat.getSimulationId());
+        }
 
         seat.release();
+        log.debug("[Redis Release] 좌석 해제 완료 - seatId={}, audienceId={}", seatId, audienceId);
 
         audience.releaseAcquiredSeat(seatId);
 
+        log.debug("[Redis Release Tx 완료] seatId={}, audienceId={}", seatId, audienceId);
         return new SeatReleaseResultWrapper(SeatReleaseResult.SUCCESS, seat.getSimulationId());
     }
 }

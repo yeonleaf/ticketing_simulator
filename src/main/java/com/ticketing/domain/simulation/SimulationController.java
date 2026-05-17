@@ -67,7 +67,8 @@ public class SimulationController {
     @PostMapping("/api/simulations")
     public ResponseEntity<SimulationResponse> createSimulation(@ModelAttribute SimulationRequest request) {
         // deploy-k6.yml은 실행되어서는 안됨
-        return ResponseEntity.ok(simulationService.createSimulation(request));
+        SimulationResponse response = simulationService.createSimulation(request);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/api/simulations")
@@ -111,7 +112,8 @@ public class SimulationController {
 
     @PostMapping("/api/simulations/{id}/finish")
     public ResponseEntity<SimulationResponse> finishSimulation(@PathVariable("id") Long simulationId, @RequestBody FinishRequest request) {
-        return ResponseEntity.ok(simulationService.finishSimulation(simulationId, request));
+        SimulationResponse response = simulationService.finishSimulation(simulationId, request);
+        return ResponseEntity.ok(response);
     }
 
     /**
