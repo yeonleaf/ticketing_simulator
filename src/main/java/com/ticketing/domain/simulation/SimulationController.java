@@ -204,6 +204,7 @@ public class SimulationController {
             "TPS", "평균 응답(ms)", "P90(ms)", "P95(ms)",
             "Hold 총 시도", "Hold 성공", "중복 선점", "Lock 충돌", "Lock 타임아웃",
             "완전 만족", "부분 만족", "미충족",
+            "사용자 완전 성공", "사용자 롤백", "사용자 완전 실패", "롤백된 좌석 수", "Release 성공", "Release 실패",
             "시작 시각", "종료 시각"
     };
 
@@ -255,6 +256,12 @@ public class SimulationController {
                 row.createCell(col++).setCellValue(s.getFullySatisfiedCount());
                 row.createCell(col++).setCellValue(s.getPartiallySatisfiedCount());
                 row.createCell(col++).setCellValue(s.getUnsatisfiedCount());
+                row.createCell(col++).setCellValue(s.getUserFullSuccess());
+                row.createCell(col++).setCellValue(s.getUserRollback());
+                row.createCell(col++).setCellValue(s.getUserTotalFail());
+                row.createCell(col++).setCellValue(s.getSeatsRolledBack());
+                row.createCell(col++).setCellValue(s.getReleaseSuccess());
+                row.createCell(col++).setCellValue(s.getReleaseFail());
                 row.createCell(col++).setCellValue(s.getStartedAt() != null ? DT_FMT.format(s.getStartedAt()) : "");
                 row.createCell(col).setCellValue(s.getFinishedAt() != null ? DT_FMT.format(s.getFinishedAt()) : "");
             }
