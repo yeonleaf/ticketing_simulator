@@ -35,6 +35,12 @@ public class SimulationResponse {
     private int partiallySatisfiedCount;
     private int unsatisfiedCount;
     private boolean virtualThread;
+    private int userFullSuccess;
+    private int userRollback;
+    private int userTotalFail;
+    private int seatsRolledBack;
+    private int releaseSuccess;
+    private int releaseFail;
 
     public SimulationResponse(Simulation simulation, List<Audience> audiences, List<Seat> seats) {
         this.id = simulation.getId();
@@ -56,6 +62,12 @@ public class SimulationResponse {
         this.partiallySatisfiedCount = simulation.getPartiallySatisfiedCount();
         this.unsatisfiedCount = simulation.getUnsatisfiedCount();
         this.virtualThread = simulation.isVirtualThread();
+        this.userFullSuccess = simulation.getUserFullSuccess();
+        this.userRollback = simulation.getUserRollback();
+        this.userTotalFail = simulation.getUserTotalFail();
+        this.seatsRolledBack = simulation.getSeatsRolledBack();
+        this.releaseSuccess = simulation.getReleaseSuccess();
+        this.releaseFail = simulation.getReleaseFail();
         seats.forEach(seat -> seatResponses.add(new SeatResponse(seat)));
         audiences.forEach(audience -> audienceResponses.add(new AudienceResponse(audience)));
     }
