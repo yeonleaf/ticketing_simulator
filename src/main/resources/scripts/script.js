@@ -66,21 +66,19 @@ export default function(data) {
                 b !== '"LOCK_TIMEOUT"' &&
                 b !== '"LOCK_CONFLICT"',
         });
-        if (res === '"SUCCESS"') {
-            break;
-        }
+
         if (res === '"SUCCESS"') {
             holdsSuccessCounter.add(1);
             acquiredSeats.push(seatId);
-        }
-        if (res === '"ALREADY_HELD"') {
-            duplicateHoldCounter.add(1);
-        }
-        if (res === '"LOCK_CONFLICT"') {
-            lockConflictCounter.add(1);
-        }
-        if (res === '"LOCK_TIMEOUT"') {
-            lockTimeoutCounter.add(1);
+        } else {
+            if (res === '"ALREADY_HELD"') {
+                duplicateHoldCounter.add(1);
+            } else if (res === '"LOCK_CONFLICT"') {
+                lockConflictCounter.add(1);
+            } else if (res === '"LOCK_TIMEOUT"') {
+                lockTimeoutCounter.add(1);
+            }
+            break;  // fail-fast
         }
     }
 
@@ -130,12 +128,18 @@ export function handleSummary(data) {
         ? data.metrics.lock_timeout.values.count
         : 0;
 
-    const userFullSuccess = data.metrics.user_full_success?.values.count ?? 0;
-    const userRollback = data.metrics.user_rollback?.values.count ?? 0;
-    const userTotalFail = data.metrics.user_total_fail?.values.count ?? 0;
-    const seatsRolledBack = data.metrics.seats_rolled_back?.values.count ?? 0;
-    const releaseSuccess = data.metrics.release_success?.values.count ?? 0;
-    const releaseFail = data.metrics.release_fail?.values.count ?? 0;
+    const userFullSuccess = data.metrics.user_full_success
+        ? data.metrics.user_full_success.values.count : 0;
+    const userRollback = data.metrics.user_rollback
+        ? data.metrics.user_rollback.values.count : 0;
+    const userTotalFail = data.metrics.user_total_fail
+        ? data.metrics.user_total_fail.values.count : 0;
+    const seatsRolledBack = data.metrics.seats_rolled_back
+        ? data.metrics.seats_rolled_back.values.count : 0;
+    const releaseSuccess = data.metrics.release_success
+        ? data.metrics.release_success.values.count : 0;
+    const releaseFail = data.metrics.release_fail
+        ? data.metrics.release_fail.values.count : 0;
 
     const checks = data.root_group.checks;
     const infraCheck = checks.find(c => c.name === 'infra_error');
