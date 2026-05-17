@@ -21,6 +21,15 @@ const holdsSuccessCounter = new Counter('holds_success');
 const lockConflictCounter = new Counter('lock_conflict');
 const lockTimeoutCounter = new Counter('lock_timeout');
 
+// 사용자 단위 (비즈니스 관점) — 신규 추가
+const userFullSuccessCounter = new Counter('user_full_success');
+const userRollbackCounter = new Counter('user_rollback');
+const userTotalFailCounter = new Counter('user_total_fail');
+const seatsRolledBackCounter = new Counter('seats_rolled_back');
+
+const releaseSuccessCounter = new Counter('release_success');
+const releaseFailCounter = new Counter('release_fail');  // NOT_HELD_BY_YOU + LOCK_TIMEOUT + LOCK_CONFLICT 통합
+
 export function setup() {
     const headers = { 'Content-Type': 'application/json' };
     var raw = http.get(`${BASE_URL}/api/simulations/${SIM_ID}`, {headers: headers});
@@ -36,7 +45,7 @@ export default function(data) {
     // 1차: 선호 좌석 시도
     const audience = data.simulation.audienceResponses[__VU - 1];
     const headers = { 'Content-Type': 'application/json' };
-    let held = false;
+    const acquiredSeats = []
     for (const seatId of audience.preferredSeatIds) {
         sleep(audience.seatClickWaitJitter / 1000);  // ms → seconds
         const raw = http.post(`${BASE_URL}/api/seats/${seatId}/hold`, JSON.stringify({
@@ -58,8 +67,11 @@ export default function(data) {
                 b !== '"LOCK_CONFLICT"',
         });
         if (res === '"SUCCESS"') {
-            held = true;
+            break;
+        }
+        if (res === '"SUCCESS"') {
             holdsSuccessCounter.add(1);
+            acquiredSeats.push(seatId);
         }
         if (res === '"ALREADY_HELD"') {
             duplicateHoldCounter.add(1);
@@ -72,54 +84,26 @@ export default function(data) {
         }
     }
 
-    // 2차: 실패 시 가용 좌석에서 재시도
-    const MAX_RETRY = 10;
-    let retry = 0;
-    while (!held && retry < MAX_RETRY) {
-        sleep(Math.random()*2)
-
-        const available = http.get(
-            `${BASE_URL}/api/simulations/${SIM_ID}/seats/available`,
-            { headers }
-        );
-        const seats = JSON.parse(available.body);
-        if (seats.length === 0) break;
-
-        const randomSeat = seats[Math.floor(Math.random() * seats.length)];
-        const raw = http.post(`${BASE_URL}/api/seats/${randomSeat.id}/hold`, JSON.stringify({
-            simulationId: SIM_ID,
-            audienceId: audience.id,
-        }), { headers });
-
-        const res = raw.body;
-        holdsTotalCounter.add(1);
-        check(res, {
-            'valid_response': (b) =>
-                b === '"SUCCESS"' || b === '"ALREADY_HELD"',
-        });
-
-        check(res, {
-            'infra_error': (b) =>
-                b !== '"SUCCESS"' &&
-                b !== '"ALREADY_HELD"' &&
-                b !== '"LOCK_TIMEOUT"' &&
-                b !== '"LOCK_CONFLICT"',
-        });
-
-        if (res === '"SUCCESS"') {
-            held = true;
-            holdsSuccessCounter.add(1);
+    // 원하는 좌석을 모두 획득하지 못했다면 전부 release한다.
+    if (acquiredSeats.length === audience.preferredSeatIds.length) {
+        userFullSuccessCounter.add(1);
+    } else if (acquiredSeats.length > 0) {
+        userRollbackCounter.add(1);
+        seatsRolledBackCounter.add(acquiredSeats.length);
+        for (const seatId of acquiredSeats) {
+            const raw = http.post(`${BASE_URL}/api/seats/${seatId}/release`, JSON.stringify({
+                        simulationId: SIM_ID,
+                        audienceId: audience.id,
+                    }), { headers: headers });
+            const res = raw.body;
+            if (res === '"SUCCESS"') {
+                releaseSuccessCounter.add(1);
+            } else {
+                releaseFailCounter.add(1);
+            }
         }
-        if (res === '"ALREADY_HELD"') {
-            duplicateHoldCounter.add(1);
-        }
-        if (res === '"LOCK_CONFLICT"') {
-            lockConflictCounter.add(1);
-        }
-        if (res === '"LOCK_TIMEOUT"') {
-            lockTimeoutCounter.add(1);
-        }
-        retry++;
+    } else {
+        userTotalFailCounter.add(1)
     }
 }
 
@@ -146,6 +130,13 @@ export function handleSummary(data) {
         ? data.metrics.lock_timeout.values.count
         : 0;
 
+    const userFullSuccess = data.metrics.user_full_success?.values.count ?? 0;
+    const userRollback = data.metrics.user_rollback?.values.count ?? 0;
+    const userTotalFail = data.metrics.user_total_fail?.values.count ?? 0;
+    const seatsRolledBack = data.metrics.seats_rolled_back?.values.count ?? 0;
+    const releaseSuccess = data.metrics.release_success?.values.count ?? 0;
+    const releaseFail = data.metrics.release_fail?.values.count ?? 0;
+
     const checks = data.root_group.checks;
     const infraCheck = checks.find(c => c.name === 'infra_error');
     const hasInfraFailure = infraCheck && infraCheck.passes > 0;
@@ -170,7 +161,13 @@ export function handleSummary(data) {
                 totalTps,
                 avgResponseMs,
                 p90ResponseMs,
-                p95ResponseMs
+                p95ResponseMs,
+                userFullSuccess,
+                userRollback,
+                userTotalFail,
+                seatsRolledBack,
+                releaseSuccess,
+                releaseFail
             }), { headers });
     }
 }

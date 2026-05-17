@@ -75,6 +75,13 @@ public class Simulation {
     @Column(nullable = false)
     private boolean virtualThread;
 
+    private int userFullSuccess;
+    private int userRollback;
+    private int userTotalFail;
+    private int seatsRolledBack;
+    private int releaseSuccess;
+    private int releaseFail;
+
     @Builder
     public Simulation(String name, int maxRow, int maxCol, int audienceCount,
                       SeatSettingStrategy seatSettingStrategy, LockStrategy lockStrategy,
@@ -106,7 +113,25 @@ public class Simulation {
         this.startedAt = Instant.now();
     }
 
-    public void finish(double totalTps, long avgResponseMs, long p90ResponseMs, long p95ResponseMs, int duplicateHoldCount, long holdsTotal, long holdsSuccess, long lockConflict, long lockTimeout, int fullySatisfiedCount, int partiallySatisfiedCount, int unsatisfiedCount) {
+    public void finish(double totalTps,
+                       long avgResponseMs,
+                       long p90ResponseMs,
+                       long p95ResponseMs,
+                       int duplicateHoldCount,
+                       long holdsTotal,
+                       long holdsSuccess,
+                       long lockConflict,
+                       long lockTimeout,
+                       int fullySatisfiedCount,
+                       int partiallySatisfiedCount,
+                       int unsatisfiedCount,
+                       int userFullSuccess,
+                       int userRollback,
+                       int userTotalFail,
+                       int seatsRolledBack,
+                       int releaseSuccess,
+                       int releaseFail
+    ) {
         this.status = SimStatus.DONE;
         this.finishedAt = Instant.now();
         this.totalTps = totalTps;
@@ -121,6 +146,12 @@ public class Simulation {
         this.fullySatisfiedCount = fullySatisfiedCount;
         this.partiallySatisfiedCount = partiallySatisfiedCount;
         this.unsatisfiedCount = unsatisfiedCount;
+        this.userFullSuccess = userFullSuccess;
+        this.userRollback = userRollback;
+        this.userTotalFail = userTotalFail;
+        this.seatsRolledBack = seatsRolledBack;
+        this.releaseSuccess = releaseSuccess;
+        this.releaseFail = releaseFail;
     }
 
     public void fail(String failReason) {

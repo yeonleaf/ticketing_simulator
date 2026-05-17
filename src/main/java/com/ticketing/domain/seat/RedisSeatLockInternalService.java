@@ -51,4 +51,22 @@ public class RedisSeatLockInternalService {
         seatRepository.findAllBySimulationId(simulationId).forEach(e -> seatResponses.add(new SeatResponse(e)));
         return seatResponses;
     }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public SeatReleaseResultWrapper doRelease(Long seatId, Long audienceId) {
+        Audience audience = audienceRepository.findById(audienceId)
+                .orElse(null);
+        if (audience == null) return new SeatReleaseResultWrapper(SeatReleaseResult.AUDIENCE_NOT_FOUND, null);
+
+        Seat seat = seatRepository.findById(seatId)
+                .orElse(null);
+        if (seat == null) return new SeatReleaseResultWrapper(SeatReleaseResult.SEAT_NOT_FOUND, null);
+        if (seat.isAvailable() || !seat.getHolderId().equals(audienceId)) return new SeatReleaseResultWrapper(SeatReleaseResult.NOT_HELD_BY_YOU, seat.getSimulationId());
+
+        seat.release();
+
+        audience.releaseAcquiredSeat(seatId);
+
+        return new SeatReleaseResultWrapper(SeatReleaseResult.SUCCESS, seat.getSimulationId());
+    }
 }

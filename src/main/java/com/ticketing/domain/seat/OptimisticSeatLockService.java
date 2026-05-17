@@ -82,24 +82,24 @@ public class OptimisticSeatLockService implements SeatLockService {
             // 캐시에서 hold된 좌석 제거
             assert resultWrapper != null;
 
-            if (resultWrapper.getSeatHoldResult() == SeatHoldResult.SUCCESS) {
-                String key = "seats:available:" + resultWrapper.getSimulationId();
-                String cached = redisTemplate.opsForValue().get(key);
-                if (cached != null) {
-                    try {
-                        List<SeatResponse> availableSeats = objectMapper.readValue(cached, new TypeReference<List<SeatResponse>>() {
-                        });
-                        List<SeatResponse> updatedSeats = availableSeats.stream()
-                                .filter(s -> !s.getId().equals(seatId))
-                                .collect(Collectors.toList());
-                        redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(updatedSeats));
-                    } catch (JsonProcessingException e) {
-                        log.warn("캐시 업데이트 실패 (seatId={})", seatId, e);
-                        // 캐시 업데이트 실패 시 캐시 삭제
-                        redisTemplate.delete(key);
-                    }
-                }
-            }
+//            if (resultWrapper.getSeatHoldResult() == SeatHoldResult.SUCCESS) {
+//                String key = "seats:available:" + resultWrapper.getSimulationId();
+//                String cached = redisTemplate.opsForValue().get(key);
+//                if (cached != null) {
+//                    try {
+//                        List<SeatResponse> availableSeats = objectMapper.readValue(cached, new TypeReference<List<SeatResponse>>() {
+//                        });
+//                        List<SeatResponse> updatedSeats = availableSeats.stream()
+//                                .filter(s -> !s.getId().equals(seatId))
+//                                .collect(Collectors.toList());
+//                        redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(updatedSeats));
+//                    } catch (JsonProcessingException e) {
+//                        log.warn("캐시 업데이트 실패 (seatId={})", seatId, e);
+//                        // 캐시 업데이트 실패 시 캐시 삭제
+//                        redisTemplate.delete(key);
+//                    }
+//                }
+//            }
 
             return resultWrapper.getSeatHoldResult();
         } catch (ObjectOptimisticLockingFailureException | PessimisticLockingFailureException op) {
@@ -115,5 +115,46 @@ public class OptimisticSeatLockService implements SeatLockService {
         List<SeatResponse> seatResponses = new ArrayList<>();
         seatRepository.findAllBySimulationId(simulationId).forEach(e -> seatResponses.add(new SeatResponse(e)));
         return seatResponses;
+    }
+
+    @Override
+    public SeatReleaseResult release(Long seatId, Long audienceId) {
+        try {
+            SeatReleaseResultWrapper resultWrapper = transactionTemplate.execute(status -> {
+                Audience audience = audienceRepository.findById(audienceId)
+                        .orElse(null);
+                if (audience == null) return new SeatReleaseResultWrapper(SeatReleaseResult.AUDIENCE_NOT_FOUND, null);
+
+                Seat seat = seatRepository.findById(seatId)
+                        .orElse(null);
+                if (seat == null) {
+                    log.info(String.format("Seat with id %s not found", seatId));
+                    return new SeatReleaseResultWrapper(SeatReleaseResult.SEAT_NOT_FOUND, null);
+                }
+                int affected = seatRepository.updateIfVersionMatches(
+                        seat.getId(),
+                        seat.getVersion(),
+                        SeatStatus.AVAILABLE.name(),
+                        audienceId
+                );
+                log.info("UPDATE attempt: seatId={}, version={}, status={}, affected={}",
+                        seat.getId(), seat.getVersion(), SeatStatus.AVAILABLE.name(), affected);
+
+                if (affected == 0) {
+                    return new SeatReleaseResultWrapper(SeatReleaseResult.LOCK_CONFLICT, seat.getSimulationId());
+                }
+
+                audienceRepository.deleteAcquiredSeat(audienceId, seat.getId());
+                return new SeatReleaseResultWrapper(SeatReleaseResult.SUCCESS, seat.getSimulationId());
+            });
+
+            assert resultWrapper != null;
+            return resultWrapper.getSeatReleaseResult();
+        } catch (ObjectOptimisticLockingFailureException | PessimisticLockingFailureException op) {
+            return SeatReleaseResult.LOCK_CONFLICT;
+        } catch (Exception e) {
+            log.error("좌석 해제 중 예상치 못한 에러 발생 (seatId={})", seatId, e);
+            return SeatReleaseResult.FAIL;
+        }
     }
 }

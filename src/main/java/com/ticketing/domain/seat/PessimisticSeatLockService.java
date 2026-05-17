@@ -33,22 +33,22 @@ public class PessimisticSeatLockService implements SeatLockService {
         try {
             SeatHoldResultWrapper resultWrapper = internalService.doHold(seatId, audienceId);
 
-            // 5. 캐시에서 hold된 좌석 제거
-            String key = "seats:available:" + resultWrapper.getSimulationId();
-            String cached = redisTemplate.opsForValue().get(key);
-            if (cached != null) {
-                try {
-                    List<SeatResponse> availableSeats = objectMapper.readValue(cached, new TypeReference<List<SeatResponse>>() {});
-                    List<SeatResponse> updatedSeats = availableSeats.stream()
-                            .filter(s -> !s.getId().equals(seatId))
-                            .collect(Collectors.toList());
-                    redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(updatedSeats));
-                } catch (JsonProcessingException e) {
-                    log.warn("캐시 업데이트 실패 (seatId={})", seatId, e);
-                    // 캐시 업데이트 실패 시 캐시 삭제
-                    redisTemplate.delete(key);
-                }
-            }
+//            // 5. 캐시에서 hold된 좌석 제거
+//            String key = "seats:available:" + resultWrapper.getSimulationId();
+//            String cached = redisTemplate.opsForValue().get(key);
+//            if (cached != null) {
+//                try {
+//                    List<SeatResponse> availableSeats = objectMapper.readValue(cached, new TypeReference<List<SeatResponse>>() {});
+//                    List<SeatResponse> updatedSeats = availableSeats.stream()
+//                            .filter(s -> !s.getId().equals(seatId))
+//                            .collect(Collectors.toList());
+//                    redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(updatedSeats));
+//                } catch (JsonProcessingException e) {
+//                    log.warn("캐시 업데이트 실패 (seatId={})", seatId, e);
+//                    // 캐시 업데이트 실패 시 캐시 삭제
+//                    redisTemplate.delete(key);
+//                }
+//            }
 
             log.info("hold 결과: seatId={}, audienceId={}, result={}", seatId, audienceId, resultWrapper.getSeatHoldResult());
 
@@ -66,5 +66,39 @@ public class PessimisticSeatLockService implements SeatLockService {
         List<SeatResponse> seatResponses = new ArrayList<>();
         seatRepository.findAllBySimulationId(simulationId).forEach(e -> seatResponses.add(new SeatResponse(e)));
         return seatResponses;
+    }
+
+    @Override
+    public SeatReleaseResult release(Long seatId, Long audienceId) {
+        try {
+            SeatReleaseResultWrapper resultWrapper = internalService.doRelease(seatId, audienceId);
+
+//            // 5. 캐시에서 hold된 좌석 제거
+//            String key = "seats:available:" + resultWrapper.getSimulationId();
+//            String cached = redisTemplate.opsForValue().get(key);
+//            if (cached != null) {
+//                try {
+//                    List<SeatResponse> availableSeats = objectMapper.readValue(cached, new TypeReference<List<SeatResponse>>() {});
+//                    List<SeatResponse> updatedSeats = availableSeats.stream()
+//                            .filter(s -> !s.getId().equals(seatId))
+//                            .collect(Collectors.toList());
+//                    redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(updatedSeats));
+//                } catch (JsonProcessingException e) {
+//                    log.warn("캐시 업데이트 실패 (seatId={})", seatId, e);
+//                    // 캐시 업데이트 실패 시 캐시 삭제
+//                    redisTemplate.delete(key);
+//                }
+//            }
+
+            log.info("release 결과: seatId={}, audienceId={}, result={}", seatId, audienceId, resultWrapper.getSeatReleaseResult());
+
+            return resultWrapper.getSeatReleaseResult();
+        } catch (PessimisticLockingFailureException e) {
+            log.warn("release 락 타임아웃: seatId={}, audienceId={}", seatId, audienceId);
+            return SeatReleaseResult.LOCK_TIMEOUT;
+        } catch (Exception e) {
+            log.error("release 실패: seatId={}, audienceId={}", seatId, audienceId, e);
+            return SeatReleaseResult.FAIL;
+        }
     }
 }

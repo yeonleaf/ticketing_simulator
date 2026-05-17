@@ -37,24 +37,24 @@ public class RedisSeatLockService implements SeatLockService {
             try {
                 SeatHoldResultWrapper resultWrapper = internalService.doHold(seatId, audienceId);
 
-                if (resultWrapper.getSeatHoldResult() == SeatHoldResult.SUCCESS) {
-                    // 캐시에서 hold된 좌석 제거
-                    String key = "seats:available:" + resultWrapper.getSimulationId();
-                    String cached = redisTemplate.opsForValue().get(key);
-                    if (cached != null) {
-                        try {
-                            List<SeatResponse> availableSeats = objectMapper.readValue(cached, new TypeReference<List<SeatResponse>>() {});
-                            List<SeatResponse> updatedSeats = availableSeats.stream()
-                                    .filter(s -> !s.getId().equals(seatId))
-                                    .collect(Collectors.toList());
-                            redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(updatedSeats));
-                        } catch (JsonProcessingException e) {
-                            log.warn("캐시 업데이트 실패 (seatId={})", seatId, e);
-                            // 캐시 업데이트 실패 시 캐시 삭제
-                            redisTemplate.delete(key);
-                        }
-                    }
-                }
+//                if (resultWrapper.getSeatHoldResult() == SeatHoldResult.SUCCESS) {
+//                    // 캐시에서 hold된 좌석 제거
+//                    String key = "seats:available:" + resultWrapper.getSimulationId();
+//                    String cached = redisTemplate.opsForValue().get(key);
+//                    if (cached != null) {
+//                        try {
+//                            List<SeatResponse> availableSeats = objectMapper.readValue(cached, new TypeReference<List<SeatResponse>>() {});
+//                            List<SeatResponse> updatedSeats = availableSeats.stream()
+//                                    .filter(s -> !s.getId().equals(seatId))
+//                                    .collect(Collectors.toList());
+//                            redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(updatedSeats));
+//                        } catch (JsonProcessingException e) {
+//                            log.warn("캐시 업데이트 실패 (seatId={})", seatId, e);
+//                            // 캐시 업데이트 실패 시 캐시 삭제
+//                            redisTemplate.delete(key);
+//                        }
+//                    }
+//                }
 
                 return resultWrapper.getSeatHoldResult();
             } finally {
@@ -74,5 +74,29 @@ public class RedisSeatLockService implements SeatLockService {
     @Override
     public List<SeatResponse> getAllSeatsBySimulationId(Long simulationId) {
         return internalService.getAllSeatsBySimulationId(simulationId);
+    }
+
+    @Override
+    public SeatReleaseResult release(Long seatId, Long audienceId) {
+        RLock lock = redissonClient.getLock("seat:lock:" + seatId);
+        try {
+            boolean acquired = lock.tryLock(5, 30, TimeUnit.SECONDS);
+            if (!acquired) return SeatReleaseResult.LOCK_TIMEOUT;
+
+            try {
+                SeatReleaseResultWrapper resultWrapper = internalService.doRelease(seatId, audienceId);
+                return resultWrapper.getSeatReleaseResult();
+            } finally {
+                if (lock.isHeldByCurrentThread()) {
+                    lock.unlock();  // 커밋 이후에 락 해제
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return SeatReleaseResult.LOCK_TIMEOUT;
+        } catch (Exception e) {
+            log.error("Redisson 락 처리 중 예상치 못한 에러 (seatId={})", seatId, e);
+            return SeatReleaseResult.FAIL;
+        }
     }
 }

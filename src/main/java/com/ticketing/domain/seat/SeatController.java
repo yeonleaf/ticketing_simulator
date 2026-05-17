@@ -53,4 +53,18 @@ public class SeatController {
     }
 
     public record HoldRequest(Long audienceId, Long simulationId) {}
+
+    @PostMapping("/api/seats/{seatId}/release")
+    public ResponseEntity<SeatReleaseResult> releaseResult(@PathVariable Long seatId, @RequestBody ReleaseRequest request) {
+        Simulation simulation = simulationService.getSimulation(request.simulationId());
+        SeatLockService seatService = switch (simulation.getLockStrategy()) {
+            case PESSIMISTIC -> pessimisticSeatLockService;
+            case OPTIMISTIC -> optimisticSeatLockService;
+            case REDIS_REDISSON -> redisSeatLockService;
+        };
+        SeatReleaseResult result = seatService.release(seatId, request.audienceId);
+        return ResponseEntity.ok(result);
+    }
+    public record ReleaseRequest(Long audienceId, Long simulationId) {}
+
 }

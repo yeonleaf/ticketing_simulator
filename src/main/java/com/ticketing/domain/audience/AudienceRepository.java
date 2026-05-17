@@ -28,5 +28,7 @@ public interface AudienceRepository extends JpaRepository<Audience, Long> {
             nativeQuery = true)
     void insertAcquiredSeat(@Param("audienceId") Long audienceId, @Param("seatId") Long seatId);
 
-
+    @Modifying
+    @Query(value = "DELETE s FROM audience_acquired_seats s where audience_id = :audienceId and seat_id = :seatId", nativeQuery = true)
+    void deleteAcquiredSeat(@Param("audienceId") Long audienceId, @Param("seatId") Long seatId);
 }

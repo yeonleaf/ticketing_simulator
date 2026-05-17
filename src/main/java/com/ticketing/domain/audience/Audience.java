@@ -63,4 +63,7 @@ public class Audience {
     public void addAcquiredSeat(Long seatId) {
         this.acquiredSeatIds.add(seatId);
     }
+    public void releaseAcquiredSeat(Long seatId) {
+        this.acquiredSeatIds.remove(seatId);
+    }
 }
